@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf8" />
+    <title>SuperAgent — elegant API for AJAX in Node and browsers</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/tocbot/3.0.0/tocbot.css"
+    />
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body>
+    <ul id="menu"></ul>
+    <div id="content">
+      <h1 id="superagent">SuperAgent</h1>
+      <p>
+        SuperAgent는 기존의 복잡한 요청 API에 대한 불만에서 출발해 유연성,
+        가독성, 그리고 낮은 학습 난이도를 목표로 설계된 경량 Ajax API입니다.
+        또한 Node.js 환경에서도 동작합니다!
+      </p>
+      <pre><code class="language-javascript">     request
+       .post(&#39;/api/pet&#39;)
+       .send({ name: &#39;Manny&#39;, species: &#39;cat&#39; })
+       .set(&#39;X-API-Key&#39;, &#39;foobar&#39;)
+       .set(&#39;Accept&#39;, &#39;application/json&#39;)
+       .then(res =&gt; {
+          alert(&#39;yay got &#39; + JSON.stringify(res.body));
+       });
+</code></pre>
+      <h2 id="test-documentation">테스트 문서</h2>
+      <p>
+        <a href="../../index.html"><strong>English</strong></a>
+      </p>
+      <p>
+        다음의 <a href="../test.html">테스트 문서</a>는
+        <a href="https://mochajs.org/">Mocha&#39;s</a> &quot;doc&quot; 리포터를
+        사용해 생성되었으며, 실제 테스트 스위트를 직접 반영합니다. 이 문서는
+        추가적인 참고 자료로 활용할 수 있습니다.
+      </p>
+      <h2 id="request-basics">기본 요청</h2>
+      <p>
+        요청은 <code>request</code> 객체에서 적절한 메서드를 호출하여 시작되며,
+        그 다음 <code>.then()</code> 또는 <code>.end()</code> 혹은
+        <a href="#promise-and-generator-support"><code>await</code></a
+        >를 사용해 요청을 전송할 수 있습니다. 예를 들어, 간단한
+        <strong>GET</strong> 요청은 다음과 같습니다.
+      </p>
+      <pre><code class="language-javascript">     request
+       .get(&#39;/search&#39;)
+       .then(res =&gt; {
+          // res.body, res.headers, res.status
+       })
+       .catch(err =&gt; {
+          // err.message, err.response
+       });
+</code></pre>
+      <p>HTTP 메서드는 문자열로도 전달할 수 있습니다.</p>
+      <pre><code class="language-javascript">    request(&#39;GET&#39;, &#39;/search&#39;).then(success, failure);
+</code></pre>
+      <p>
+        예전 방식의 콜백도 지원되지만, 권장되지는 않습니다.
+        <code>.then()</code> 대신 <code>.end()</code>를 호출하여 요청을 전송할
+        수 있습니다.
+      </p>
+      <pre><code class="language-javascript">    request(&#39;GET&#39;, &#39;/search&#39;).end(function(err, res){
+      if (res.ok) {}
+    });
+</code></pre>
+      <p>
+        절대 URL을 사용할 수 있습니다. 단, 웹 브라우저에서는 서버가
+        <a href="#cors">CORS</a>를 구현한 경우에만 절대 URL이 정상적으로
+        작동합니다.
+      </p>
+      <pre><code class="language-javascript">     request
+       .get(&#39;https://example.com/search&#39;)
+       .then(res =&gt; {
+
+       });
+</code></pre>
+      <p>
+        <strong>Node</strong> 클라이언트는
+        <a
+          href="https://ko.wikipedia.org/wiki/%EC%9C%A0%EB%8B%89%EC%8A%A4_%EB%8F%84%EB%A9%94%EC%9D%B8_%EC%86%8C%EC%BC%93"
+          >유닉스 도메인 소켓</a
+        >을 통한 요청을 지원합니다.
+      </p>
+      <pre><code class="language-javascript">    // pattern: https?+unix://SOCKET_PATH/REQUEST_PATH
+    //          Use `%2F` as `/` in SOCKET_PATH
+    try {
+      const res = await request
+        .get(&#39;http+unix://%2Fabsolute%2Fpath%2Fto%2Funix.sock/search&#39;);
+      // res.body, res.headers, res.status
+    } catch(err) {
+      // err.message, err.response
+    }
+</code></pre>
+      <p>
+        <strong>DELETE</strong>, <strong>HEAD</strong>, <strong>PATCH</strong>,
+        <strong>POST</strong>, and <strong>PUT</strong> 요청도 사용할 수 있으며,
+        다음 예시에서 메서드 이름만 변경하면 됩니다.
+      </p>
+      <pre><code class="language-javascript">    request
+      .head(&#39;/favicon.ico&#39;)
+      .then(res =&gt; {
+
+      });
+</code></pre>
+      <p>
+        <strong>DELETE</strong>는 <code>delete</code>가 예약어였던 구형 IE와의
+        호환성을 위해 <code>.del()</code> 메서드로도 호출할 수 있습니다.
+      </p>
+      <p>
+        HTTP 메서드의 기본값은 <strong>GET</strong>이므로, 다음과 같이 작성해도
+        유효합니다.
+      </p>
+      <pre><code class="language-javascript">     request(&#39;/search&#39;, (err, res) =&gt; {
+
+     });
+</code></pre>
+      <h2 id="using-http/2">HTTP/2 사용하기</h2>
+      <p>
+        HTTP/1.x 폴백 없이 HTTP/2 프로토콜만 사용하려면
+        <code>.http2()</code> 메서드를 호출하여 요청을 전송할 수 있습니다.
+      </p>
+      <pre><code class="language-javascript">    const request = require(&#39;superagent&#39;);
+    const res = await request
+      .get(&#39;https://example.com/h2&#39;)
+      .http2();
+</code></pre>
+      <h2 id="setting-header-fields">헤더 필드 설정하기</h2>
+      <p>
+        헤더 필드 설정은 간단합니다. 필드 이름과 값을
+        <code>.set()</code> 메서드에 전달하면 됩니다.
+      </p>
+      <pre><code class="language-javascript">     request
+       .get(&#39;/search&#39;)
+       .set(&#39;API-Key&#39;, &#39;foobar&#39;)
+       .set(&#39;Accept&#39;, &#39;application/json&#39;)
+       .then(callback);
+</code></pre>
+      <p>여러 개의 헤더 필드를 한 번에 설정하려면 객체를 전달하면 됩니다.</p>
+      <pre><code class="language-javascript">     request
+       .get(&#39;/search&#39;)
+       .set({ &#39;API-Key&#39;: &#39;foobar&#39;, Accept: &#39;application/json&#39; })
+       .then(callback);
+</code></pre>
+      <h2 id="get-requests"><code>GET</code> 요청</h2>
+      <p>
+        <code>.query()</code> 메서드는 객체를 인자로 받아
+        <strong>GET</strong> 요청 시 쿼리 문자열을 자동으로 생성합니다. 예를
+        들어 다음 코드는
+        <code>/search?query=Manny&amp;range=1..5&amp;order=desc</code> 경로를
+        생성합니다.
+      </p>
+      <pre><code class="language-javascript">     request
+       .get(&#39;/search&#39;)
+       .query({ query: &#39;Manny&#39; })
+       .query({ range: &#39;1..5&#39; })
+       .query({ order: &#39;desc&#39; })
+       .then(res =&gt; {
+
+       });
+</code></pre>
+      <p>또는 하나의 객체로 설정할 수 있습니다.</p>
+      <pre><code class="language-javascript">    request
+      .get(&#39;/search&#39;)
+      .query({ query: &#39;Manny&#39;, range: &#39;1..5&#39;, order: &#39;desc&#39; })
+      .then(res =&gt; {
+
+      });
+</code></pre>
+      <p><code>.query()</code> 메서드는 문자열도 받습니다.</p>
+      <pre><code class="language-javascript">      request
+        .get(&#39;/querystring&#39;)
+        .query(&#39;search=Manny&amp;range=1..5&#39;)
+        .then(res =&gt; {
+
+        });
+</code></pre>
+      <p>조인할 수도 있습니다.</p>
+      <pre><code class="language-javascript">      request
+        .get(&#39;/querystring&#39;)
+        .query(&#39;search=Manny&#39;)
+        .query(&#39;range=1..5&#39;)
+        .then(res =&gt; {
+
+        });
+</code></pre>
+      <h2 id="head-requests"><code>HEAD</code> 요청하기</h2>
+      <p>
+        HEAD 요청에서도 <code>.query()</code> 메서드를 사용할 수 있습니다. 예를
+        들어 다음 코드는 <code>/users?email=joe@smith.com</code> 경로를
+        생성합니다.
+      </p>
+      <pre><code class="language-javascript">      request
+        .head(&#39;/users&#39;)
+        .query({ email: &#39;joe@smith.com&#39; })
+        .then(res =&gt; {
+
+        });
+</code></pre>
+      <h2 id="post--put-requests"><code>POST</code> / <code>PUT</code> 요청</h2>
+      <p>
+        전형적인 JSON <strong>POST</strong> 요청은 Content-Type 헤더를 적절히
+        설정하고, 데이터를 JSON 형식으로 전송하는 방식입니다. 예를 들어 다음과
+        같은 코드가 이에 해당합니다.
+      </p>
+      <pre><code class="language-javascript">      request.post(&#39;/user&#39;)
+        .set(&#39;Content-Type&#39;, &#39;application/json&#39;)
+        .send(&#39;{&quot;name&quot;:&quot;tj&quot;,&quot;pet&quot;:&quot;tobi&quot;}&#39;)
+        .then(callback)
+        .catch(errorCallback)
+</code></pre>
+      <p>
+        JSON은 가장 일반적으로 사용되므로 기본값으로 설정되어 있습니다. 다음
+        예제는 앞선 예제와 동일한 동작을 수행합니다.
+      </p>
+      <pre><code class="language-javascript">      request.post(&#39;/user&#39;)
+        .send({ name: &#39;tj&#39;, pet: &#39;tobi&#39; })
+        .then(callback, errorCallback)
+</code></pre>
+      <p>또는 <code>.send()</code> 여러 번 호출할 수 있습니다.</p>
+      <pre><code class="language-javascript">      request.post(&#39;/user&#39;)
+        .send({ name: &#39;tj&#39; })
+        .send({ pet: &#39;tobi&#39; })
+        .then(callback, errorCallback)
+</code></pre>
+      <p>
+        기본적으로 문자열을 전송하면 <code>Content-Type</code>이
+        <code>application/x-www-form-urlencoded</code>로 자동 설정됩니다. 여러
+        번 <code>.send()</code>를 호출하면 각 문자열이 <code>&amp;</code>로
+        연결되어 최종적으로 <code>name=tj&amp;pet=tobi</code>와 같은 결과가
+        생성됩니다.
+      </p>
+      <pre><code class="language-javascript">      request.post(&#39;/user&#39;)
+        .send(&#39;name=tj&#39;)
+        .send(&#39;pet=tobi&#39;)
+        .then(callback, errorCallback);
+</code></pre>
+      <p>
+        SuperAgent는 다양한 형식으로 확장 가능하지만, 기본적으로
+        &quot;json&quot;과 &quot;form&quot; 형식을 지원합니다.
+        <code>application/x-www-form-urlencoded</code> 형식으로 데이터를
+        전송하려면 <code>.type('form')</code>을 호출하면 됩니다. 기본 형식은
+        &quot;json&quot;입니다. 다음 요청은 본문에
+        &quot;name=tj&amp;pet=tobi&quot;를 포함하여 <strong>POST</strong>됩니다.
+      </p>
+      <pre><code class="language-javascript">      request.post(&#39;/user&#39;)
+        .type(&#39;form&#39;)
+        .send({ name: &#39;tj&#39; })
+        .send({ pet: &#39;tobi&#39; })
+        .then(callback, errorCallback)
+</code></pre>
+      <p>
+        <a href="https://developer.mozilla.org/ko/../Web/API/FormData/FormData"
+          ><code>FormData</code></a
+        >
+        객체를 사용하는 것도 지원됩니다. 다음 예제는 id=&quot;myForm&quot;인
+        HTML 폼의 내용을 <strong>POST</strong> 방식으로 전송합니다.
+      </p>
+      <pre><code class="language-javascript">      request.post(&#39;/user&#39;)
+        .send(new FormData(document.getElementById(&#39;myForm&#39;)))
+        .then(callback, errorCallback)
+</code></pre>
+      <h2 id="setting-the-content-type"><code>Content-Type</code> 설정하기</h2>
+      <p>
+        가장 명확한 해결책은 <code>.set()</code> 메서드를 사용하는 것입니다.
+      </p>
+      <pre><code class="language-javascript">     request.post(&#39;/user&#39;)
+       .set(&#39;Content-Type&#39;, &#39;application/json&#39;)
+</code></pre>
+      <p>
+        간단하게 <code>.type()</code> 메서드를 사용할 수 있으며, 표준화된 MIME
+        타입(<code>type/subtype</code>)을 직접 지정하거나 &quot;xml&quot;,
+        &quot;json&quot;, &quot;png&quot; 등과 같은 확장자 이름만으로도 설정할
+        수 있습니다.
+      </p>
+      <pre><code class="language-javascript">     request.post(&#39;/user&#39;)
+       .type(&#39;application/json&#39;)
+
+     request.post(&#39;/user&#39;)
+       .type(&#39;json&#39;)
+
+     request.post(&#39;/user&#39;)
+       .type(&#39;png&#39;)
+</code></pre>
+      <h2 id="serializing-request-body">요청 본문 직렬화하기</h2>
+      <p>
+        SuperAgent는 기본적으로 JSON과 폼 데이터를 자동으로 직렬화합니다. 또한
+        다른 콘텐츠 유형에 대해서도 자동 직렬화를 설정할 수 있습니다.
+      </p>
+      <pre><code class="language-js">request.serialize[&#39;application/xml&#39;] = function (obj) {
+    return &#39;string generated from obj&#39;;
+};
+
+// &#39;application/xml&#39; Content-type을 가진 모든 요청은
+// 자동으로 직렬화 됩니다.
+</code></pre>
+      <p>
+        사용자 정의 형식으로 페이로드를 전송하려면, 요청 단위로
+        <code>.serialize()</code>
+        메서드를 사용해 SuperAgent의 기본 직렬화 방식을 교체할 수 있습니다.
+      </p>
+      <pre><code class="language-js">request
+    .post(&#39;/user&#39;)
+    .send({foo: &#39;bar&#39;})
+    .serialize(obj =&gt; {
+        return &#39;string generated from obj&#39;;
+    });
+</code></pre>
+      <h2 id="retrying-requests">요청 재시도하기</h2>
+      <p>
+        <code>.retry()</code> 메서드를 사용하면, 일시적인 오류나 불안정한 인터넷
+        연결로 인해 요청이 실패한 경우 SuperAgent가 자동으로 재시도합니다.
+      </p>
+      <p>
+        이 메서드는 두 개의 선택적 인자를 받습니다. 재시도 횟수(기본값은 1)와
+        콜백 함수입니다. 각 재시도 전에 <code>callback(err, res)</code>를
+        호출합니다. 콜백 함수는 요청을 재시도할지 여부를 결정하기 위해
+        <code>true</code> 또는 <code>false</code>를 반환할 수 있습니다. 단, 최대
+        재시도 횟수는 항상 적용됩니다.
+      </p>
+      <pre><code class="language-javascript">     request
+       .get(&#39;https://example.com/search&#39;)
+       .retry(2) // 혹은
+       .retry(2, callback)
+       .then(finished);
+       .catch(failed);
+</code></pre>
+      <p>
+        멱등한 요청인 경우에만 <code>.retry()</code> 메서드를 사용하세요. 예를
+        들어, 동일한 요청이 서버에 여러 번 도달하더라도 중복 구매와 같은
+        바람직하지 않은 부작용이 발생하지 않아야 합니다.
+      </p>
+      <p>
+        모든 요청 메서드는 기본적으로 재시도 대상에 포함됩니다. 따라서 POST
+        요청을 재시도하지 않도록 하려면, 사용자 정의 재시도 콜백을 전달해야
+        합니다.
+      </p>
+      <p>기본적으로 다음과 같은 상태 코드는 자동으로 재시도됩니다.</p>
+      <ul>
+        <li><code>408</code></li>
+        <li><code>413</code></li>
+        <li><code>429</code></li>
+        <li><code>500</code></li>
+        <li><code>502</code></li>
+        <li><code>503</code></li>
+        <li><code>504</code></li>
+        <li><code>521</code></li>
+        <li><code>522</code></li>
+        <li><code>524</code></li>
+      </ul>
+      <p>기본적으로 다음과 같은 오류 코드가 자동으로 재시도됩니다.</p>
+      <ul>
+        <li><code>&#39;ETIMEDOUT&#39;</code></li>
+        <li><code>&#39;ECONNRESET&#39;</code></li>
+        <li><code>&#39;EADDRINUSE&#39;</code></li>
+        <li><code>&#39;ECONNREFUSED&#39;</code></li>
+        <li><code>&#39;EPIPE&#39;</code></li>
+        <li><code>&#39;ENOTFOUND&#39;</code></li>
+        <li><code>&#39;ENETUNREACH&#39;</code></li>
+        <li><code>&#39;EAI_AGAIN&#39;</code></li>
+      </ul>
+      <h2 id="setting-accept">Accept 설정하기</h2>
+      <p>
+        <code>.type()</code> 메서드와 유사하게, <code>.accept()</code> 메서드를
+        사용하면 <code>Accept</code> 헤더를 간편하게 설정할 수 있습니다. 이
+        메서드는 <code>request.types</code>를 참조하며,
+        <code>type/subtype</code> 형식의 MIME 타입 전체 이름이나
+        &quot;xml&quot;, &quot;json&quot;, &quot;png&quot; 등의 확장자 형태로도
+        지정할 수 있어 편리합니다.
+      </p>
+      <pre><code class="language-javascript">     request.get(&#39;/user&#39;)
+       .accept(&#39;application/json&#39;)
+
+     request.get(&#39;/user&#39;)
+       .accept(&#39;json&#39;)
+
+     request.post(&#39;/user&#39;)
+       .accept(&#39;png&#39;)
+</code></pre>
+      <h3 id="facebook-and-accept-json">Facebook과 Accept JSON</h3>
+      <p>
+        Facebook API를 호출할 때는 반드시 요청 헤더에
+        <code>Accept: application/json</code>을 포함해야 합니다. 그렇지 않으면
+        Facebook은 <code>Content-Type: text/javascript; charset=UTF-8</code>으로
+        응답하게 되며, SuperAgent는 이 형식을 파싱하지 못해
+        <code>res.body</code>가 undefined가 됩니다.
+        <code>req.accept(&#39;json&#39;)</code> 또는
+        <code>req.set(&#39;Accept&#39;, &#39;application/json&#39;)</code>을
+        사용할 수 있습니다. 자세한 사항은
+        <a href="https://github.com/ladjs/superagent/issues/1078">issue 1078</a>
+        에서 확인해보세요.
+      </p>
+      <h2 id="query-strings">쿼리 문자열</h2>
+      <p>
+        <code>req.query(obj)</code>는 쿼리 문자열을 구성하는 데 사용되는
+        메서드입니다. 예를 들어 <strong>POST</strong> 요청에서
+        <code>?format=json&amp;dest=/login</code>과 같은 쿼리 문자열을 추가할 수
+        있습니다.
+      </p>
+      <pre><code class="language-javascript">    request
+      .post(&#39;/&#39;)
+      .query({ format: &#39;json&#39; })
+      .query({ dest: &#39;/login&#39; })
+      .send({ post: &#39;data&#39;, here: &#39;wahoo&#39; })
+      .then(callback);
+</code></pre>
+      <p>
+        기본적으로 쿼리 문자열은 특정한 순서로 조립되지 않습니다. ASCII 순으로
+        정렬된 쿼리 문자열을 사용하려면
+        <code>req.sortQuery()</code>를 호출하면 됩니다. 또한
+        <code>req.sortQuery(myComparisonFn)</code>을 통해 사용자 정의 정렬 비교
+        함수를 전달할 수도 있습니다. 비교 함수는 두 개의 인자를 받아 음수, 0
+        또는 양수를 반환해야 합니다.
+      </p>
+      <pre><code class="language-js"> // 기본 정렬 방식
+ request.get(&#39;/user&#39;)
+   .query(&#39;name=Nick&#39;)
+   .query(&#39;search=Manny&#39;)
+   .sortQuery()
+   .then(callback)
+
+ // 사용자 정의 정렬 함수
+ request.get(&#39;/user&#39;)
+   .query(&#39;name=Nick&#39;)
+   .query(&#39;search=Manny&#39;)
+   .sortQuery((a, b) =&gt; a.length - b.length)
+   .then(callback)
+</code></pre>
+      <h2 id="tls-options">TLS 옵션</h2>
+      <p>
+        Node.js에서 SuperAgent는 HTTPS 요청을 구성할 수 있는 다양한 메서드를
+        지원합니다.
+      </p>
+      <ul>
+        <li><code>.ca()</code>: 신뢰할 CA 인증서를 설정합니다.</li>
+        <li><code>.cert()</code>: 클라이언트 인증서 체인을 설정합니다.</li>
+        <li><code>.key()</code>: 클라이언트의 개인 키를 설정합니다.</li>
+        <li>
+          <code>.pfx()</code>: PKCS12 형식의 PFX 파일을 사용하여 클라이언트의
+          개인 키와 인증서 체인을 설정합니다.
+        </li>
+        <li>
+          <code>.disableTLSCerts()</code>: 만료되었거나 유효하지 않은 TLS
+          인증서를 거부하지 않도록 설정합니다. 내부적으로
+          <code>rejectUnauthorized=true</code>가 설정되며, 중간자 공격(MITM)에
+          노출될 수 있으므로 주의가 필요합니다.
+        </li>
+      </ul>
+      <p>
+        더 자세한 내용은 Node.js
+        <a
+          href="https://nodejs.org/api/https.html#https_https_request_options_callback"
+          >https.request 문서</a
+        >에서 확인할 수 있습니다.
+      </p>
+      <pre><code class="language-js">var key = fs.readFileSync(&#39;key.pem&#39;),
+    cert = fs.readFileSync(&#39;cert.pem&#39;);
+
+request
+  .post(&#39;/client-auth&#39;)
+  .key(key)
+  .cert(cert)
+  .then(callback);
+</code></pre>
+      <pre><code class="language-js">var ca = fs.readFileSync(&#39;ca.cert.pem&#39;);
+
+request
+  .post(&#39;https://localhost/private-ca-server&#39;)
+  .ca(ca)
+  .then(res =&gt; {});
+</code></pre>
+      <h2 id="parsing-response-bodies">응답 본문 파싱하기</h2>
+      <p>
+        SuperAgent는 응답 본문 데이터를 자동으로 파싱해줍니다. 현재
+        <code>application/x-www-form-urlencoded</code>,
+        <code>application/json</code>, <code>multipart/form-data</code>을
+        지원합니다. 이외의 응답 본문 데이터에 대해서도 자동 파싱을 설정할 수
+        있습니다.
+      </p>
+      <pre><code class="language-js">// 브라우저
+request.parse[&#39;application/xml&#39;] = function (str) {
+    return {&#39;object&#39;: &#39;parsed from str&#39;};
+};
+
+// node
+request.parse[&#39;application/xml&#39;] = function (res, cb) {
+    //parse response text and set res.body here
+
+    cb(null, res);
+};
+
+// 앞으로 &#39;application/xml&#39; 유형의 반응은
+// 자동으로 파싱됩니다
+</code></pre>
+      <p>
+        <code>.buffer(true).parse(fn)</code> 메서드를 사용하면 내장된 파서보다
+        우선적으로 적용되는 사용자 정의 파서를 설정할 수 있습니다.
+        <code>.buffer(false)</code>로 응답 버퍼링이 비활성화되어 있다면,
+        <code>response</code> 이벤트는 본문 파싱이 완료되기 전에 발생하므로
+        <code>response.body</code>를 사용할 수 없습니다.
+      </p>
+      <h3 id="json--urlencoded">JSON / Urlencoded</h3>
+      <p>
+        <code>res.body</code> 속성은 파싱된 객체를 나타냅니다. 예를 들어, 응답이
+        JSON 문자열
+        &#39;{&quot;user&quot;:{&quot;name&quot;:&quot;tobi&quot;}}&#39;를
+        반환했다면, <code>res.body.user.name</code>은 &quot;tobi&quot; 값을 갖게
+        됩니다. 마찬가지로 x-www-form-urlencoded 형식의
+        &quot;user[name]=tobi&quot;도 동일한 결과를 제공합니다. 단, 중첩은 한
+        단계까지만 지원되므로 더 복잡한 구조의 데이터를 다루려면 JSON 형식을
+        사용하는 것이 좋습니다.
+      </p>
+      <p>
+        배열은 key를 반복해서 전달하는 방식으로 전송됩니다.
+        <code>.send({color: [&#39;red&#39;,&#39;blue&#39;]})</code>는
+        <code>color=red&amp;color=blue</code>로 변환되어 전송됩니다. 배열의
+        key에 <code>[]</code>를 포함시키고 싶다면 SuperAgent는 이를 자동으로
+        처리하지 않으므로, 직접 <code>color[]</code>와 같이 key 이름에 대괄호를
+        추가해야 합니다.
+      </p>
+      <h3 id="multipart">다중 파트</h3>
+      <p>
+        Node 클라이언트는
+        <a href="https://github.com/felixge/node-formidable">Formidable</a>
+        모듈을 통해 <em>multipart/form-data</em>를 지원합니다. 다중 파트 응답을
+        파싱할 때 <code>res.files</code> 객체를 사용할 수 있으며, 이 객체에는
+        업로드된 파일에 대한 정보가 포함됩니다. 예를 들어, 다음과 같은 multipart
+        본문을 포함한 응답을 가정해볼 수 있습니다.
+      </p>
+      <pre><code>--whoop
+Content-Disposition: attachment; name=&quot;image&quot;; filename=&quot;tobi.png&quot;
+Content-Type: image/png
+
+... data here ...
+--whoop
+Content-Disposition: form-data; name=&quot;name&quot;
+Content-Type: text/plain
+
+Tobi
+--whoop--
+</code></pre>
+      <p>
+        <code>res.body.name</code>은 &quot;Tobi&quot; 값을 가지고 있으며,
+        <code>res.files.image</code>는 디스크 경로, 파일 이름 및 기타 속성을
+        포함한 <code>File</code> 객체입니다.
+      </p>
+      <h3 id="binary">바이너리</h3>
+      <p>
+        브라우저에서는 바이너리 응답 본문을 처리하기 위해
+        <code>.responseType(&#39;blob&#39;)</code>을 사용할 수 있습니다. 이
+        API는 Node.js 환경에서는 필요하지 않습니다. 이 메서드에서 지원되는 인자
+        값은 다음과 같습니다.
+      </p>
+      <ul>
+        <li>
+          <code>&#39;blob&#39;</code>는 XMLHttpRequest의
+          <code>responseType</code> 속성에 그대로 전달됩니다.
+        </li>
+        <li>
+          <code>&#39;arraybuffer&#39;</code>도 마찬가지로
+          <code>responseType</code> 속성에 전달됩니다.
+        </li>
+      </ul>
+      <pre><code class="language-js">req.get(&#39;/binary.data&#39;)
+  .responseType(&#39;blob&#39;)
+  .then(res =&gt; {
+    // 여기서 res.body는 브라우저 기본 Blob 타입입니다.
+  });
+</code></pre>
+      <p>
+        더 자세한 내용은 Mozilla Developer Network의
+        <a
+          href="https://developer.mozilla.org/en-US/../Web/API/XMLHttpRequest/responseType"
+          >XMLHttpRequest.responseType 문서</a
+        >에서 확인할 수 있습니다.
+      </p>
+      <h2 id="response-properties">응답 속성</h2>
+      <p>
+        <code>Response</code> 객체에는 응답 텍스트, 파싱된 응답 본문, 헤더 필드,
+        상태 플래그 등 다양한 유용한 플래그와 속성이 설정되어 있습니다.
+      </p>
+      <h3 id="response-text">응답 문자</h3>
+      <p>
+        <code>res.text</code> 속성에는 파싱되지 않은 응답 본문 문자열이
+        포함됩니다. 이 속성은 클라이언트 API에서는 항상 존재하며, Node
+        환경에서는 MIME 타입이 &quot;text/<em>&quot;, &quot;</em>/json&quot;,
+        또는 &quot;x-www-form-urlencoded&quot;와 일치할 경우에만 기본적으로
+        제공됩니다. 이러한 제한은 대용량 multipart 파일이나 이미지 등의 본문을
+        텍스트로 버퍼링하는 것이 매우 비효율적이기 때문에 메모리를 절약하기 위한
+        목적입니다. 응답을 강제로 버퍼링하려면 &quot;응답 버퍼링&quot; 섹션을
+        참조하세요.
+      </p>
+      <h3 id="response-body">응답 본문</h3>
+      <p>
+        SuperAgent는 요청 데이터를 자동으로 직렬화할 뿐만 아니라, 자동으로
+        파싱할 수도 있습니다. Content-Type에 대해 파서가 정의되어 있는 경우,
+        해당 타입에 맞게 응답이 파싱되며 기본적으로
+        &quot;application/json&quot;과
+        &quot;application/x-www-form-urlencoded&quot; 형식이 포함됩니다. 파싱된
+        객체는 <code>res.body</code>를 통해 접근할 수 있습니다.
+      </p>
+      <h3 id="response-header-fields">응답 헤더 필드</h3>
+      <p>
+        <code>res.header</code>는 파싱된 응답 헤더 필드를 담은 객체로, Node.js와
+        마찬가지로 필드 이름을 소문자로 변환하여 저장합니다. 예를 들어,
+        <code>res.header[&#39;content-length&#39;]</code>와 같이 접근할 수
+        있습니다.
+      </p>
+      <h3 id="response-content-type">응답 콘텐츠 타입</h3>
+      <p>
+        Content-Type 응답 헤더는 특별하게 처리되어 <code>res.type</code> 속성은
+        charset 정보를 제외한 콘텐츠 타입만을 제공합니다. 예를 들어
+        Content-Type이 &quot;text/html; charset=utf8&quot;인 경우,
+        <code>res.type</code>은 &quot;text/html&quot;을 반환하고,
+        <code>res.charset</code> 속성에는 &quot;utf8&quot;이 포함됩니다.
+      </p>
+      <h3 id="response-status">응답 상태</h3>
+      <p>
+        응답 상태 플래그는 요청이 성공했는지 여부를 비롯한 다양한 유용한 정보를
+        판단하는 데 도움을 줍니다. 이를 통해 SuperAgent는 RESTful 웹 서비스와
+        효과적으로 상호작용할 수 있습니다. 현재 정의된 주요 플래그는 다음과
+        같습니다.
+      </p>
+      <pre><code class="language-javascript">     var type = status / 100 | 0;
+
+     // 상태 / 클래스
+     res.status = status;
+     res.statusType = type;
+
+     // 기본
+     res.info = 1 == type;
+     res.ok = 2 == type;
+     res.clientError = 4 == type;
+     res.serverError = 5 == type;
+     res.error = 4 == type || 5 == type;
+
+     // 편의 기능
+     res.accepted = 202 == status;
+     res.noContent = 204 == status || 1223 == status;
+     res.badRequest = 400 == status;
+     res.unauthorized = 401 == status;
+     res.notAcceptable = 406 == status;
+     res.notFound = 404 == status;
+     res.forbidden = 403 == status;
+</code></pre>
+      <h2 id="aborting-requests">요청 중단하기</h2>
+      <p>
+        요청을 중단하려면 <code>req.abort()</code> 메서드를 호출하기만 하면
+        됩니다.
+      </p>
+      <h2 id="timeouts">타임아웃</h2>
+      <p>
+        때때로 네트워크나 서버가 요청을 수신한 후 응답 없이 멈춰버리는 경우가
+        있습니다. 이러한 무한 대기를 방지하려면 타임아웃을 설정해야 합니다.
+      </p>
+      <ul>
+        <li>
+          <p>
+            <code>req.timeout({deadline:ms})</code> 또는
+            <code>req.timeout(ms)</code>는 업로드, 리다이렉트, 서버 처리 시간을
+            포함한 전체 요청이 완료되어야 하는 최종 시간 제한을 설정합니다.
+            <code>ms</code>는 0보다 큰 밀리초 단위의 숫자이며, 제한 시간 내에
+            응답이 완료되지 않으면 요청은 중단됩니다.
+          </p>
+        </li>
+        <li>
+          <p>
+            <code>req.timeout({response:ms})</code>는 서버로부터 첫 번째
+            바이트가 도착할 때까지의 최대 대기 시간을 설정합니다. 전체 다운로드
+            소요 시간은 제한하지 않습니다. 응답 타임아웃은 DNS 조회, TCP/IP 및
+            TLS 연결, 요청 데이터 업로드 시간을 포함하므로, 서버의 실제 응답
+            시간보다 몇 초 더 길게 설정하는 것이 좋습니다.
+          </p>
+        </li>
+      </ul>
+      <p>
+        <code>deadline</code>과 <code>response</code> 타임아웃은 함께 사용하는
+        것이 좋습니다. 짧은 응답 타임아웃은 응답하지 않는 네트워크를 빠르게
+        감지하는 데 유용하고, 긴 데드라인은 느리지만 안정적인 네트워크 환경에서
+        다운로드를 완료할 수 있도록 여유 시간을 제공합니다. 두 타이머 모두
+        첨부된 파일 업로드에 허용되는 시간을 제한합니다. 파일을 업로드하는
+        경우에는 충분히 긴 타임아웃을 설정하는 것이 좋습니다.
+      </p>
+      <pre><code class="language-javascript">    request
+      .get(&#39;/big-file?network=slow&#39;)
+      .timeout({
+        response: 5000,  // 서버가 데이터를 보내기 시작할 때까지 최대 5초간 기다립니다.
+        deadline: 60000, // 파일 전체를 로드하는 데 최대 1분까지 허용합니다.
+      })
+      .then(res =&gt; {
+          /* 제시간 응답 수신 */
+        }, err =&gt; {
+          if (err.timeout) { /* 시간 초과! */ } else { /* 그 외 오류 */ }
+      });
+</code></pre>
+      <p>타임아웃 오류에는 <code>.timeout</code> 속성이 포함되어 있습니다.</p>
+      <h2 id="authentication">인증</h2>
+      <p>
+        Node와 브라우저 환경에서 <code>.auth()</code> 메서드를 사용하여 인증을
+        수행할 수 있습니다.
+      </p>
+      <pre><code class="language-javascript">    request
+      .get(&#39;http://local&#39;)
+      .auth(&#39;tobi&#39;, &#39;learnboost&#39;)
+      .then(callback);
+</code></pre>
+      <p>
+        <em>Node</em> 클라이언트에서는 기본 인증을 URL 내에
+        &quot;user:pass&quot; 형식으로 포함시킬 수 있습니다.
+      </p>
+      <pre><code class="language-javascript">    request.get(&#39;http://tobi:learnboost@local&#39;).then(callback);
+</code></pre>
+      <p>
+        기본적으로 <code>Basic</code> 인증만 사용됩니다. 브라우저에서는
+        <code>{type:&#39;auto&#39;}</code>를 추가하면 Digest, NTLM 등 브라우저에
+        내장된 모든 인증 방식을 사용할 수 있습니다.
+      </p>
+      <pre><code class="language-javascript">    request.auth(&#39;digest&#39;, &#39;secret&#39;, {type:&#39;auto&#39;})
+</code></pre>
+      <p>
+        <code>auth</code> 메서드는 토큰 기반 인증을 위한 <code>type</code>의
+        <code>bearer</code> 옵션도 지원합니다.
+      </p>
+      <pre><code class="language-javascript">    request.auth(&#39;my_token&#39;, { type: &#39;bearer&#39; })
+</code></pre>
+      <h2 id="following-redirects">다음 리다이렉션 따라가기</h2>
+      <p>
+        기본적으로 최대 5번까지 리다이렉션이 자동으로 따라가며, 필요에 따라
+        <code>res.redirects(n)</code> 메서드를 사용하여 이 횟수를 지정할 수
+        있습니다.
+      </p>
+      <pre><code class="language-javascript">    const response = await request.get(&#39;/some.png&#39;).redirects(2);
+</code></pre>
+      <p>
+        리다이렉션 횟수가 제한을 초과하면 오류로 간주됩니다. 이를 성공적인
+        응답으로 처리하려면
+        <code>.ok(res =&gt; res.status &lt; 400)</code> 메서드를 사용하세요.
+      </p>
+      <h2 id="agents-for-global-state">전역 상태를 위한 에이전트</h2>
+      <h3 id="saving-cookies">쿠키 저장하기</h3>
+      <p>
+        Node에서 SuperAgent는 기본적으로 쿠키를 저장하지 않습니다. 하지만
+        <code>.agent()</code> 메서드를 사용하면 쿠키를 저장하는 SuperAgent
+        인스턴스를 생성할 수 있습니다. 각 인스턴스는 독립적인 쿠키 저장소를
+        가지고 있습니다.
+      </p>
+      <pre><code class="language-javascript">    const agent = request.agent();
+    agent
+      .post(&#39;/login&#39;)
+      .then(() =&gt; {
+        return agent.get(&#39;/cookied-page&#39;);
+      });
+</code></pre>
+      <p>
+        브라우저에서는 쿠키가 자동으로 관리되므로
+        <code>.agent()</code>를 사용해도 쿠키가 분리되지는 않습니다.
+      </p>
+      <h3 id="default-options-for-multiple-requests">
+        다중 요청을 위한 기본 옵션
+      </h3>
+      <p>
+        에이전트에서 호출된 일반 요청 메서드는 해당 에이전트가 처리하는 모든
+        요청에 대해 기본값으로 적용됩니다.
+      </p>
+      <pre><code class="language-javascript">    const agent = request.agent()
+      .use(plugin)
+      .auth(shared);
+
+    await agent.get(&#39;/with-plugin-and-auth&#39;);
+    await agent.get(&#39;/also-with-plugin-and-auth&#39;);
+</code></pre>
+      <p>
+        에이전트가 기본 옵션을 설정할 수 있도록 지원하는 메서드 목록입니다.
+        <code>use</code>, <code>on</code>, <code>once</code>, <code>set</code>,
+        <code>query</code>, <code>type</code>, <code>accept</code>,
+        <code>auth</code>, <code>withCredentials</code>, <code>sortQuery</code>,
+        <code>retry</code>, <code>ok</code>, <code>redirects</code>,
+        <code>timeout</code>, <code>buffer</code>, <code>serialize</code>,
+        <code>parse</code>, <code>ca</code>, <code>key</code>, <code>pfx</code>,
+        <code>cert</code>.
+      </p>
+      <h2 id="piping-data">데이터 전달 방식</h2>
+      <p>
+        <code>.pipe()</code>는 <code>.end()</code> 또는
+        <code>.then()</code> 메서드 <strong>대신</strong> 사용되며, Node
+        클라이언트는 요청과 응답 간에 데이터를 주고받도록 파이프 처리할 수
+        있습니다.
+      </p>
+      <p>
+        예를 들어, 파일의 콘텐츠를 요청 본문으로 전달하는 경우는 다음과
+        같습니다.
+      </p>
+      <pre><code class="language-javascript">    const request = require(&#39;superagent&#39;);
+    const fs = require(&#39;fs&#39;);
+
+    const stream = fs.createReadStream(&#39;path/to/my.json&#39;);
+    const req = request.post(&#39;/somewhere&#39;);
+    req.type(&#39;json&#39;);
+    stream.pipe(req);
+</code></pre>
+      <p>
+        요청에 데이터를 파이프할 경우, SuperAgent는 해당 데이터를
+        <a href="https://en.wikipedia.org/wiki/Chunked_transfer_encoding"
+          >청크 전송 인코딩</a
+        >
+        방식으로 전송합니다. 이 방식은 Python WSGI 서버 등 모든 서버에서
+        지원되지는 않습니다.
+      </p>
+      <p>응답을 파일로 저장하려면 다음과 같이 파이프 처리할 수 있습니다.</p>
+      <pre><code class="language-javascript">    const stream = fs.createWriteStream(&#39;path/to/my.json&#39;);
+    const req = request.get(&#39;/some.json&#39;);
+    req.pipe(stream);
+</code></pre>
+      <p>
+        파이프와 콜백 또는 프로미스는 <strong>함께 사용할 수 없으며</strong>,
+        <code>.end()</code>나 <code>Response</code> 객체의 결과를 파이프
+        처리해서는 안 됩니다.
+      </p>
+      <pre><code class="language-javascript">    // 이러한 방식으로 하지 마세요.
+    const stream = getAWritableStream();
+    const req = request
+      .get(&#39;/some.json&#39;)
+      // 나쁨: 이 방식은 스트림에 올바르지 않은 데이터를 전달하며 예기치 못한 방식으로 실패할 수 있습니다.
+      .end((err, this_does_not_work) =&gt; this_does_not_work.pipe(stream))
+    const req = request
+      .get(&#39;/some.json&#39;)
+      .end()
+      // 나쁨: 이 방식도 지원되지 않으며, .pipe는 자동으로 .end를 호출합니다.
+      .pipe(nope_its_too_late);
+</code></pre>
+      <p>
+        SuperAgent의
+        <a href="https://github.com/ladjs/superagent/issues/1188">향후 버전</a
+        >에서는 <code>pipe()</code>를 부적절하게 호출하면 실패하게 됩니다.
+      </p>
+      <h2 id="multipart-requests">다중 부분 요청</h2>
+      <p>
+        <code>.attach()</code>와 <code>.field()</code> 메서드를 제공하는
+        SuperAgent는 다중 부분 요청을 구성하는 데에도 매우 유용합니다.
+      </p>
+      <p>
+        <code>.field()</code> 또는 <code>.attach()</code>를 사용할 경우
+        <code>.send()</code>는 사용할 수 없으며,
+        <code>Content-Type</code> 헤더를 직접 설정해서는 안 됩니다. 올바른
+        타입은 자동으로 지정됩니다.
+      </p>
+      <h3 id="attaching-files">파일 첨부하기</h3>
+      <p>
+        <code>.attach(name, [file], [options])</code>를 사용하여 파일을 전송할
+        수 있습니다. 여러 파일을 첨부하려면 <code>.attach</code>를 반복 호출하면
+        됩니다. 인자는 다음과 같습니다.
+      </p>
+      <ul>
+        <li><code>name</code> — 폼 이름 필드.</li>
+        <li>
+          <code>file</code> — 파일 경로의 문자열 또는 <code>Blob</code>/<code
+            >Buffer</code
+          >
+          객체.
+        </li>
+        <li>
+          <code>options</code> — (선택) 사용자 정의 파일 이름의 문자열 또는
+          <code>{filename: string}</code> 형식의 객체. In Node also
+          <code>{contentType: &#39;mime/type&#39;}</code> is supported. In
+          browser create a <code>Blob</code> with an appropriate type instead.
+        </li>
+      </ul>
+      <br />
+
+      <pre><code class="language-javascript">    request
+      .post(&#39;/upload&#39;)
+      .attach(&#39;image1&#39;, &#39;path/to/felix.jpeg&#39;)
+      .attach(&#39;image2&#39;, imageBuffer, &#39;luna.jpeg&#39;)
+      .field(&#39;caption&#39;, &#39;My cats&#39;)
+      .then(callback);
+</code></pre>
+      <h3 id="field-values">필드 값</h3>
+      <p>
+        <code>.field(name, value)</code> 및 <code>.field({name: value})</code>를
+        사용해 HTML 폼 필드처럼 값을 설정할 수 있습니다. 예를 들어 이름과 이메일
+        정보를 함께 여러 이미지를 업로드하려면, 요청은 다음과 같이 구성될 수
+        있습니다.
+      </p>
+      <pre><code class="language-javascript">     request
+       .post(&#39;/upload&#39;)
+       .field(&#39;user[name]&#39;, &#39;Tobi&#39;)
+       .field(&#39;user[email]&#39;, &#39;tobi@learnboost.com&#39;)
+       .field(&#39;friends[]&#39;, [&#39;loki&#39;, &#39;jane&#39;])
+       .attach(&#39;image&#39;, &#39;path/to/tobi.png&#39;)
+       .then(callback);
+</code></pre>
+      <h2 id="compression">압축</h2>
+      <p>
+        node 클라이언트는 압축된 응답을 지원하며, 아무 것도 하지 않아도 됩니다!
+        그냥 작동합니다.
+      </p>
+      <h2 id="buffering-responses">응답 버퍼링</h2>
+      <p>
+        <code>.req.buffer()</code>를 호출하면 응답 본문을
+        <code>res.text</code>로 강제 버퍼링할 수 있습니다.
+        &quot;text/plain&quot;, &quot;text/html&quot; 등 텍스트 응답의 기본
+        버퍼링을 취소하려면 <code>req.buffer(false)</code>를 호출하세요.
+      </p>
+      <p>
+        <code>res.buffered</code> 플래그가 제공되면, 이를 활용하여 동일한 콜백
+        함수에서 버퍼링된 응답과 버퍼링되지 않은 응답을 모두 처리할 수 있습니다.
+      </p>
+      <h2 id="cors">CORS</h2>
+      <p>
+        보안상의 이유로 브라우저는 서버가 CORS 헤더를 통해 명시적으로 허용하지
+        않으면 교차 출처 요청(cross-origin requests)을 차단합니다. 브라우저는
+        또한 서버가 어떤 HTTP 헤더와 메서드를 허용하는지 확인하기 위해 추가적인
+        <strong>OPTIONS</strong> 요청을 전송합니다.
+        <a
+          href="https://developer.mozilla.org/ko/../Web/HTTP/Access_control_CORS"
+          >CORS에 대해 더 알아보기</a
+        >.
+      </p>
+      <p>
+        <code>.withCredentials()</code> 메서드는 origin(출처)에서 쿠키를 전송할
+        수 있도록 활성화합니다. 단, 이 기능은
+        <code>Access-Control-Allow-Origin</code> 값이
+        와일드카드(&quot;*&quot;)가 <em>아니어야</em> 하며,
+        <code>Access-Control-Allow-Credentials</code> 값이 &quot;true&quot;일
+        경우에만 작동합니다.
+      </p>
+      <pre><code class="language-javascript">    request
+      .get(&#39;https://api.example.com:4001/&#39;)
+      .withCredentials()
+      .then(res =&gt; {
+        assert.equal(200, res.status);
+        assert.equal(&#39;tobi&#39;, res.text);
+      })
+</code></pre>
+      <h2 id="error-handling">오류 처리하기</h2>
+      <p>
+        콜백 함수는 항상 두 개의 인자를 전달합니다. 오류와 응답입니다. 오류가
+        발생하지 않으면, 첫 번째 인자는 null 입니다.
+      </p>
+      <pre><code class="language-javascript">    request
+     .post(&#39;/upload&#39;)
+     .attach(&#39;image&#39;, &#39;path/to/tobi.png&#39;)
+     .then(res =&gt; {
+
+     });
+</code></pre>
+      <p>
+        "error" 이벤트도 발생하며, 이를 통해 오류를 감지하고 처리할 수 있습니다.
+      </p>
+      <pre><code class="language-javascript">    request
+      .post(&#39;/upload&#39;)
+      .attach(&#39;image&#39;, &#39;path/to/tobi.png&#39;)
+      .on(&#39;error&#39;, handle)
+      .then(res =&gt; {
+
+      });
+</code></pre>
+      <p>
+        <strong
+          >SuperAgent는 기본적으로 4xx 및 5xx 응답(그리고 처리되지 않은 3xx
+          응답도 포함)을 오류</strong
+        >로 간주합니다. 예를 들어 <code>304 Not Modified</code>,
+        <code>403 Forbidden</code> 또는
+        <code>500 Internal Server Error</code> 같은 응답을 받으면 해당 상태
+        정보는 <code>err.status</code>를 통해 확인할 수 있습니다. 이러한
+        응답으로부터 발생한 오류에는 &quot;<a href="#response-properties"
+          >응답 요소</a
+        >&quot;에서 언급한 모든 속성을 포함한 <code>err.response</code> 필드도
+        포함됩니다. 이 라이브러리는 일반적으로 성공 응답만을 원하고, HTTP 오류
+        상태 코드를 오류로 처리하는 경우를 대비하여 이러한 방식으로 동작합니다.
+        하지만 특정 오류 조건에 대해서는 사용자 정의 로직을 허용하도록 설계되어
+        있습니다.
+      </p>
+      <p>
+        네트워크 실패, 시간초과, 응답 없는 오류는 <code>err.status</code> 또는
+        <code>err.response</code> 필드를 포함하지 않습니다.
+      </p>
+      <p>
+        404 또는 HTTP 오류 응답을 처리하고 싶다면,
+        <code>error.status</code> 요소를 사용할 수 있습니다. HTTP 오류(4xx 또는
+        5xx 응답)가 발생했을 때 <code>res.error</code> 요소는
+        <code>Error</code> 객체이고 이는 다음과 같이 에러 확인을 수행할 수
+        있습니다.
+      </p>
+      <pre><code class="language-javascript">    if (err &amp;&amp; err.status === 404) {
+      alert(&#39;oh no &#39; + res.body.message);
+    }
+    else if (err) {
+      // 그 외 다른 모든 오류 유형은 일반적으로 처리합니다
+    }
+</code></pre>
+      <p>
+        대안으로, <code>.ok(callback)</code> 메서드를 사용하여 응답이 오류인지
+        아닌지 결정할 수 있습니다. <code>ok</code> 콜백은 응답을 받고 응답이
+        성공으로 해석되면 <code>true</code>를 반환합니다.
+      </p>
+      <pre><code class="language-javascript">    request.get(&#39;/404&#39;)
+      .ok(res =&gt; res.status &lt; 500)
+      .then(response =&gt; {
+        // 404 페이지를 성공적인 응답으로 처리합니다
+      })
+</code></pre>
+      <h2 id="progress-tracking">진행과정 추적하기</h2>
+      <p>
+        SuperAgent는 업로드와 큰 파일 다운로드에서
+        <code>progress</code> 이벤트를 동작시킵니다.
+      </p>
+      <pre><code class="language-javascript">    request.post(url)
+      .attach(&#39;field_name&#39;, file)
+      .on(&#39;progress&#39;, event =&gt; {
+        /* the event is:
+        {
+          direction: &quot;upload&quot; or &quot;download&quot;
+          percent: 0 to 100 // 0에서 100까지 (파일 크기를 알 수 없는 경우 생략될 수 있습니다)
+          total: // 전체 파일 크기 (생략될 수 있습니다)
+          loaded: // 현재까지 다운로드되거나 업로드된 바이트 수
+        } */
+      })
+      .then()
+</code></pre>
+      <h2 id="testing-on-localhost">로컬 호스트에서 테스트하기</h2>
+      <h3 id="forcing-specific-connection-ip-address">
+        특정 IP 주소 연결 설정하기
+      </h3>
+      <p>
+        Node.js에서는 DNS를 무시하고 <code>.connect()</code> 메서드를 사용하여
+        모든 요청을 특정 IP 주소로 직접 연결할 수 있습니다. 예를 들어, 이 요청은
+        <code>example.com</code> 대신 로컬호스트로 전달됩니다.
+      </p>
+      <pre><code class="language-javascript">    const res = await request.get(&quot;http://example.com&quot;).connect(&quot;127.0.0.1&quot;);
+</code></pre>
+      <p>
+        요청은 리다이렉트 되어, 여러 호스트명과 IP를 특정지을 수 있으며 특별한
+        <code>*</code>를 대체로 설정할 수 있습니다. (다른 와일드 카드는 지원되지
+        않습니다). 요청은 원본 값을 가지며 본인의 <code>Host</code> 헤더를
+        유지합니다. <code>.connect(undefined)</code>는 이러한 기능을 끕니다.
+      </p>
+      <pre><code class="language-javascript">    const res = await request.get(&quot;http://redir.example.com:555&quot;)
+      .connect({
+        &quot;redir.example.com&quot;: &quot;127.0.0.1&quot;, // redir.example.com:555는 127.0.0.1:555를 사용합니다.
+        &quot;www.example.com&quot;: false, // 이 항목은 재정의하지 마세요. 일반적인 DNS 설정을 사용합니다.
+        &quot;mapped.example.com&quot;: { host: &quot;127.0.0.1&quot;, port: 8080}, // mapped.example.com의 모든 포트는 127.0.0.1:8080으로 매핑됩니다.
+        &quot;*&quot;: &quot;proxy.example.com&quot;, // 나머지 모든 요청은 이 호스트로 전달됩니다
+      });
+</code></pre>
+      <h3 id="ignoring-brokeninsecure-https-on-localhost">
+        로컬 호스트에서 깨지거나 보안되지 않은 HTTPS 무시하기
+      </h3>
+      <p>
+        Node.js에서 HTTPS 설정이 잘못되었거나 보안성이 떨어지는 경우(예: 자체
+        서명된 인증서를 사용하면서
+        <code>.ca()</code>를 지정하지 않은 경우),
+        <code>.trustLocalhost()</code>를 호출하면 <code>localhost</code>로의
+        요청을 허용할 수 있습니다.
+      </p>
+      <pre><code class="language-javascript">    const res = await request.get(&quot;https://localhost&quot;).trustLocalhost()
+</code></pre>
+      <p>
+        <code>.connect(&quot;127.0.0.1&quot;)</code>와 함께 사용하면 HTTPS
+        요청을 어떤 도메인에서든 <code>localhost</code>로 강제로 리다이렉트할 수
+        있습니다.
+      </p>
+      <p>
+        <code>localhost</code>는 신뢰되지 않은 네트워크에 노출되지 않는 루프백
+        인터페이스이기 때문에, 깨진 HTTPS를 무시하는 것이 일반적으로 안전합니다.
+        <code>localhost</code>를 신뢰하도록 설정하는 것이 향후 기본값이 될 수
+        있습니다. <code>127.0.0.1</code>&#39;의 진위 여부를 강제로 검사하려면
+        <code>.trustLocalhost(false)</code>를 사용하세요.
+      </p>
+      <p>
+        다른 IP 주소로 요청을 보낼 때 HTTPS 보안을 비활성화하는 기능은
+        의도적으로 지원하지 않습니다. 이러한 옵션은 HTTPS 문제를 빠르게
+        &quot;해결&quot;하려는 방식으로 오용되는 경우가 많기 때문입니다.
+        <a href="https://certbot.eff.org">Let&#39;s Encrypt</a>를 통해 무료
+        HTTPS 인증서를 발급하거나, <code>.ca(ca_public_pem)</code>을 사용해 자체
+        서명된 인증서를 신뢰할 수 있도록 직접 CA를 설정할 수 있습니다.
+      </p>
+      <h2 id="promise-and-generator-support">Promise 및 Generator 지원</h2>
+      <p>
+        SuperAgent의 요청은 &quot;thenable&quot; 객체이며, JavaScript의 Promise
+        및 <code>async</code>/<code>await</code>
+        문법과 호환됩니다.
+      </p>
+      <pre><code class="language-javascript">    const res = await request.get(url);
+</code></pre>
+      <p>
+        Promise를 사용할 경우,
+        <strong
+          ><code>.end()</code> 또는 <code>.pipe()</code>를 호출하지
+          마세요</strong
+        >. <code>.then()</code> 또는 <code>await</code>를 사용하면 요청을 처리할
+        수 있는 다른 방식들이 모두 비활성화됩니다.
+      </p>
+      <p>
+        <a href="https://github.com/tj/co">co</a>와 같은 라이브러리나
+        <a href="https://github.com/koajs/koa">koa</a>와 같은 웹
+        프레임워크에서는 SuperAgent의 모든 메서드에서 <code>yield</code>를
+        사용할 수 있습니다.
+      </p>
+      <pre><code class="language-javascript">    const req = request
+      .get(&#39;http://local&#39;)
+      .auth(&#39;tobi&#39;, &#39;learnboost&#39;);
+    const res = yield req;
+</code></pre>
+      <p>
+        SuperAgent는 전역 <code>Promise</code> 객체가 존재하는 환경에서
+        동작하도록 설계되어 있습니다. Internet Explorer나 Node.js 0.10에서
+        promise를 사용하려면 v7 버전과 폴리필이 필요합니다.
+      </p>
+      <p>
+        v8 버전부터는 IE에 대한 지원이 중단되었습니다. Opera 85나 iOS Safari
+        12.2–12.5 등을 지원하려면 WeakRef와 BigInt에 대한 폴리필을 추가해야
+        합니다. 예를 들어
+        <a href="https://cdnjs.cloudflare.com/polyfill/"
+          >https://cdnjs.cloudflare.com/polyfill/</a
+        >을 사용할 수 있습니다.
+      </p>
+      <pre><code class="language-html">&lt;script src=&quot;https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=WeakRef,BigInt&quot;&gt;&lt;/script&gt;
+</code></pre>
+      <h2 id="browser-and-node-versions">브라우저와 node 버전</h2>
+      <p>
+        SuperAgent에는 두 가지 구현 방식이 있습니다. 하나는 웹 브라우저용(XHR
+        사용)이고, 다른 하나는 Node.JS용(core http 모듈 사용)입니다. 기본적으로
+        Browserify와 WebPack은 브라우저 버전을 선택합니다.
+      </p>
+      <p>
+        Node.JS용 코드를 컴파일하려면 WebPack 설정에서 반드시
+        <a href="https://webpack.github.io/../configuration.html#target"
+          >node target</a
+        >
+        을 지정해야 합니다.
+      </p>
+    </div>
+    <a href="http://github.com/ladjs/superagent"
+      ><img
+        style="position: absolute; top: 0; right: 0; border: 0"
+        src="https://s3.amazonaws.com/github/ribbons/forkme_right_white_ffffff.png"
+        alt="Fork me on GitHub"
+    /></a>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.0/jquery.min.js"></script>
+    <script>
+      $('code').each(function () {
+        $(this).html(highlight($(this).text()));
+      });
+
+      function highlight(js) {
+        return js
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/('.*?')/gm, '<span class="string">$1</span>')
+          .replace(/(\d+\.\d+)/gm, '<span class="number">$1</span>')
+          .replace(/(\d+)/gm, '<span class="number">$1</span>')
+          .replace(
+            /\bnew *(\w+)/gm,
+            '<span class="keyword">new</span> <span class="init">$1</span>'
+          )
+          .replace(
+            /\b(function|new|throw|return|var|if|else)\b/gm,
+            '<span class="keyword">$1</span>'
+          );
+      }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tocbot/3.0.0/tocbot.js"></script>
+    <script>
+      // Only use tocbot for main docs, not test docs
+      if (document.querySelector('#superagent')) {
+        tocbot.init({
+          // Where to render the table of contents.
+          tocSelector: '#menu',
+          // Where to grab the headings to build the table of contents.
+          contentSelector: '#content',
+          // Which headings to grab inside of the contentSelector element.
+          headingSelector: 'h2',
+          smoothScroll: false
+        });
+      }
+    </script>
+  </body>
+</html>
