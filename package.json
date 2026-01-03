@@ -39,7 +39,7 @@
     "babelify": "^10.0.0",
     "Base64": "^1.1.0",
     "basic-auth-connect": "^1.0.0",
-    "body-parser": "^1.20.3",
+    "body-parser": "^1.20.4",
     "browserify": "^17.0.0",
     "cookie-parser": "^1.4.7",
     "cross-env": "^7.0.3",
