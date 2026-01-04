@@ -17,6 +17,11 @@
     "Hunter Loftis <hunter@hunterloftis.com>",
     "Nick Baugh <niftylettuce@gmail.com>"
   ],
+  "overrides": {
+    "tinyify": {
+      "terser": "^4.8.1"
+    }
+  },
   "dependencies": {
     "component-emitter": "^1.3.1",
     "cookiejar": "^2.1.4",
@@ -62,7 +67,7 @@
     "rimraf": "6",
     "should": "^13.2.3",
     "should-http": "^0.1.1",
-    "tinyify": "3.0.0",
+    "tinyify": "4.0.0",
     "xo": "^1.2.3"
   },
   "engines": {
