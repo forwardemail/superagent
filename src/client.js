@@ -872,7 +872,14 @@ Request.prototype._end = function () {
   xhr.send(typeof data === 'undefined' ? null : data);
 };
 
-request.agent = () => new Agent();
+// create a Proxy that can instantiate a new Agent without using `new` keyword
+// (for backward compatibility and chaining)
+const proxyAgent = new Proxy(Agent, {
+  apply(target, thisArg, argumentsList) {
+    return new target(...argumentsList);
+  }
+});
+request.agent = proxyAgent;
 
 for (const method of ['GET', 'POST', 'OPTIONS', 'PATCH', 'PUT', 'DELETE']) {
   Agent.prototype[method.toLowerCase()] = function (url, fn) {
