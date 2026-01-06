@@ -14,6 +14,7 @@ jobs:
     strategy:
       matrix:
        include:
+        - node-version: 18.x
         - node-version: 20.x
         - node-version: 22.x
         - node-version: 24.x
