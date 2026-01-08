@@ -49,4 +49,24 @@ describe('Agent', () => {
         assert.deepEqual({ hello: 'world' }, res.body);
       });
   });
+
+  it('should assign cookies without domains correctly when following redirects', () => {
+    const agent = request.agent();
+
+    const firstUrl = new URL(base)
+    firstUrl.hostname = 'first.local'
+    const first = firstUrl.toString().slice(0, -1)
+
+    const secondUrl = new URL(base)
+    secondUrl.hostname = "second.local"
+    const second = secondUrl.toString().slice(0, -1)
+
+    return agent
+      .get(`${first}/cookie-cross-domain-redirect`)
+      .query({ first, second })
+      .connect('127.0.0.1')
+      .then((res) => {
+        assert.equal(res.text, 'first.local=true')
+      })
+  })
 });
