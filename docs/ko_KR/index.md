@@ -15,7 +15,9 @@ request
 
 ## 테스트 문서
 
-[**English**](/superagent/)
+[**English**](./../index.md)
+
+[**中文文档**](./../zh_CN/index.md)
 
 다음의 [테스트 문서](../test.html)는 [Mocha](https://mochajs.org/)의 "doc" 리포터를 사용해 생성되었으며, 실제 테스트 스위트를 직접 반영합니다.  
 이 문서는 추가적인 참고 자료로 활용할 수 있습니다.

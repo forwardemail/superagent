@@ -13,7 +13,9 @@ SuperAgent是轻量级的渐进式ajax API，具有灵活性、可读性和较�
 
 ## 测试文档 
 
-[**English**](/superagent/)
+[**English**](./../../docs/index.md)
+
+[**한국어**](./../ko_KR/index.md)
 
 下面的[测试文档](../test.html)是用[Mocha](https://mochajs.org/)的"文档"报告器生成的，并直接反映了测试套件。 这提供了额外的文档来源。  
 
