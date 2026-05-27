@@ -276,6 +276,24 @@ describe('[node] request', () => {
     });
   });
 
+  describe('.agent({ cert: "cert", key: "key" })', () => {
+    it('should throw a helpful error for configuration objects passed as agent', () => {
+      try {
+        request.get('https://example.com').agent({
+          cert: 'cert',
+          key: 'key'
+        });
+        assert.fail('Expected .agent() to throw a TypeError');
+      } catch (err) {
+        assert(err instanceof TypeError);
+        assert.strictEqual(
+          err.message,
+          '.agent() expects an http(s).Agent instance. Did you mean to use .cert() and .key()?'
+        );
+      }
+    });
+  });
+
   describe('with a content type other than application/json or text/*', () => {
     it('should still use buffering', () => {
       return request
