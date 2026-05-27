@@ -300,6 +300,15 @@ Request.prototype._getFormData = function () {
  */
 
 Request.prototype.agent = function (agent) {
+  const isValidAgent =
+    agent instanceof http.Agent || agent instanceof https.Agent;
+
+  if (agent && typeof agent === 'object' && !isValidAgent) {
+    throw new TypeError(
+      '.agent() expects an http(s).Agent instance. ' +
+        'Did you mean to use .cert() and .key()?'
+    );
+  }
   if (arguments.length === 0) return this._agent;
   this._agent = agent;
   return this;
