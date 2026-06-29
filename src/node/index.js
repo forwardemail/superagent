@@ -543,6 +543,14 @@ Request.prototype._redirect = function (res) {
   // 308 preserves method
   delete headers.host;
 
+  // 307 and 308 keep the method and body, so they skip cleanHeader() above.
+  // Still strip credentials when the redirect points to a different origin,
+  // otherwise Authorization and Cookie leak to a third party.
+  if (changesOrigin) {
+    delete headers.authorization;
+    delete headers.cookie;
+  }
+
   delete this.req;
   delete this._formData;
 

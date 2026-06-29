@@ -49,6 +49,8 @@ app.all('/test-308', (request_, res) => {
 });
 
 app2.all('/', (request_, res) => {
+  res.set('x-received-authorization', request_.headers.authorization || '');
+  res.set('x-received-cookie', request_.headers.cookie || '');
   res.send(request_.method);
 });
 
@@ -195,4 +197,21 @@ describe('request.post', () => {
       });
     });
   });
+});
+
+describe('credentials on a cross-origin redirect', () => {
+  for (const code of [301, 302, 303, 307, 308]) {
+    it(`should not forward Authorization or Cookie on a ${code} redirect to another host`, (done) => {
+      request
+        .get(`${base}/test-${code}`)
+        .set('Authorization', 'Bearer secret-token')
+        .set('Cookie', 'session=secret')
+        .redirects(1)
+        .end((error, res) => {
+          res.headers['x-received-authorization'].should.eql('');
+          res.headers['x-received-cookie'].should.eql('');
+          done(error);
+        });
+    });
+  }
 });
