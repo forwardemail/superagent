@@ -1,9 +1,9 @@
 'use strict';
 
-const assert = require('assert');
-const fs = require('fs');
-const { EventEmitter } = require('events');
-const { StringDecoder } = require('string_decoder');
+const assert = require('node:assert');
+const fs = require('node:fs');
+const { EventEmitter } = require('node:events');
+const { StringDecoder } = require('node:string_decoder');
 const getSetup = require('../support/setup');
 const request = require('../support/client');
 
@@ -23,6 +23,23 @@ describe('[node] request', () => {
       request.get(`${base}/url?a=(b%29`).end((error, res) => {
         assert.equal('/url?a=(b%29', res.text);
         done();
+      });
+    });
+    it('should preserve .. path segments', (done) => {
+      const http = require('node:http');
+      const server = http.createServer((request_, res) => {
+        res.end(request_.url);
+      });
+      server.listen(0, '127.0.0.1', () => {
+        const { port } = server.address();
+        request
+          .get(`http://127.0.0.1:${port}/api/v2/../error`)
+          .end((error, res) => {
+            server.close();
+            assert.ifError(error);
+            assert.equal('/api/v2/../error', res.text);
+            done();
+          });
       });
     });
   });
@@ -86,16 +103,16 @@ describe('[node] request', () => {
 
   describe('case-insensitive', () => {
     it('should set/get header fields case-insensitively', () => {
-      const req = request.post(`${base}/echo`);
-      req.set('MiXeD', 'helloes');
-      assert.strictEqual(req.get('mixed'), 'helloes');
+      const request_ = request.post(`${base}/echo`);
+      request_.set('MiXeD', 'helloes');
+      assert.strictEqual(request_.get('mixed'), 'helloes');
     });
 
     it('should unset header fields case-insensitively', () => {
-      const req = request.post(`${base}/echo`);
-      req.set('MiXeD', 'helloes');
-      req.unset('MIXED');
-      assert.strictEqual(req.get('mixed'), undefined);
+      const request_ = request.post(`${base}/echo`);
+      request_.set('MiXeD', 'helloes');
+      request_.unset('MIXED');
+      assert.strictEqual(request_.get('mixed'), undefined);
     });
   });
 
@@ -128,25 +145,27 @@ describe('[node] request', () => {
         done();
       };
 
-      request.post(`${base}/echo`)
-        .send('{"name":"tobi"}')
-        .pipe(stream);
+      request.post(`${base}/echo`).send('{"name":"tobi"}').pipe(stream);
     });
   });
 
   describe('ipv6 address', () => {
     it('should successfully query an ipv6 address', (done) => {
-      request.get(`http://[::]:${process.env.ZUUL_PORT}/url?a=(b%29`).end((error, res) => {
-        assert.equal('/url?a=(b%29', res.text);
-        done();
-      });
+      request
+        .get(`http://[::]:${process.env.ZUUL_PORT}/url?a=(b%29`)
+        .end((error, res) => {
+          assert.equal('/url?a=(b%29', res.text);
+          done();
+        });
     });
 
     it('should successfully query an ipv6 address', (done) => {
-      request.get(`http://[::1]:${process.env.ZUUL_PORT}/url?a=(b%29`).end((error, res) => {
-        assert.equal('/url?a=(b%29', res.text);
-        done();
-      });
+      request
+        .get(`http://[::1]:${process.env.ZUUL_PORT}/url?a=(b%29`)
+        .end((error, res) => {
+          assert.equal('/url?a=(b%29', res.text);
+          done();
+        });
     });
   });
 
@@ -193,13 +212,13 @@ describe('[node] request', () => {
           assert.ifError(error);
           assert.equal(null, res.text);
           assert.deepEqual(res.body, {});
-          let str = '';
+          let string_ = '';
           res.setEncoding('utf8');
           res.on('data', (chunk) => {
-            str += chunk;
+            string_ += chunk;
           });
           res.on('end', () => {
-            assert.equal(str, 'hello this is dog');
+            assert.equal(string_, 'hello this is dog');
             done();
           });
         });
@@ -221,13 +240,13 @@ describe('[node] request', () => {
           assert.equal(res.type, type);
           assert.equal(res.buffered, false);
           assert.deepEqual(res.body, {});
-          let str = '';
+          let string_ = '';
           res.setEncoding('utf8');
           res.on('data', (chunk) => {
-            str += chunk;
+            string_ += chunk;
           });
           res.on('end', () => {
-            assert.equal(str, send);
+            assert.equal(string_, send);
             done();
           });
         });
@@ -266,7 +285,7 @@ describe('[node] request', () => {
 
   describe('.agent(new http.Agent())', () => {
     it('should set passed agent', (done) => {
-      const http = require('http');
+      const http = require('node:http');
       const request_ = request.get(`${base}/echo`);
       const agent = new http.Agent();
       const returnValue = request_.agent(agent);

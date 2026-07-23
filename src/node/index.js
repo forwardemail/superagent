@@ -2,13 +2,13 @@
  * Module dependencies.
  */
 
-const { format } = require('url');
-const Stream = require('stream');
-const https = require('https');
-const http = require('http');
-const fs = require('fs');
-const zlib = require('zlib');
-const util = require('util');
+const { format, parse } = require('node:url');
+const Stream = require('node:stream');
+const https = require('node:https');
+const http = require('node:http');
+const fs = require('node:fs');
+const zlib = require('node:zlib');
+const util = require('node:util');
 const qs = require('qs');
 const mime = require('mime');
 let methods = require('methods');
@@ -99,8 +99,8 @@ exports.protocols = {
  */
 
 exports.serialize = {
-  'application/x-www-form-urlencoded': (obj) => {
-    return qs.stringify(obj, { indices: false, strictNullHandling: true });
+  'application/x-www-form-urlencoded'(object) {
+    return qs.stringify(object, { indices: false, strictNullHandling: true });
   },
   'application/json': safeStringify
 };
@@ -450,8 +450,7 @@ Request.prototype._pipeContinue = function (stream, options) {
     if (this._aborted) return;
 
     if (this._shouldDecompress(res)) {
-
-      let decompresser = chooseDecompresser(res);
+      const decompresser = chooseDecompresser(res);
 
       decompresser.on('error', (error) => {
         if (error && error.code === 'Z_BUF_ERROR') {
@@ -702,7 +701,12 @@ Request.prototype.request = function () {
   if (urlString.indexOf('http') !== 0) urlString = `http://${urlString}`;
   const url = new URL(urlString);
   let { protocol } = url;
-  let path = `${url.pathname}${url.search}`;
+  // Prefer legacy url.parse path so segments like ".." are not collapsed (#1816).
+  // new URL() still provides host/protocol/auth/port for the rest of the request.
+  // Unix socket URLs keep WHATWG pathname: parse() merges the socket into path.
+  const path = /^https?\+unix:/.test(protocol)
+    ? `${url.pathname}${url.search}`
+    : parse(urlString).path;
 
   // support unix sockets
   if (/^https?\+unix:/.test(protocol) === true) {
@@ -1094,17 +1098,19 @@ Request.prototype._end = function () {
             // Flatten single-item arrays to maintain backward compatibility
             const flattenedFields = {};
             if (fields) {
-              for (const key in fields) {
+              for (const key of Object.keys(fields)) {
                 const value = fields[key];
-                flattenedFields[key] = Array.isArray(value) && value.length === 1 ? value[0] : value;
+                flattenedFields[key] =
+                  Array.isArray(value) && value.length === 1 ? value[0] : value;
               }
             }
 
             const flattenedFiles = {};
             if (files) {
-              for (const key in files) {
+              for (const key of Object.keys(files)) {
                 const value = files[key];
-                flattenedFiles[key] = Array.isArray(value) && value.length === 1 ? value[0] : value;
+                flattenedFiles[key] =
+                  Array.isArray(value) && value.length === 1 ? value[0] : value;
               }
             }
 
@@ -1112,6 +1118,7 @@ Request.prototype._end = function () {
             callback(null, flattenedFields, flattenedFiles);
           });
         };
+
         buffer = true;
       } else if (isBinary(mime)) {
         parser = exports.parse.image;
@@ -1294,9 +1301,11 @@ Request.prototype._end = function () {
 
 // Check whether response has a non-0-sized gzip-encoded body
 Request.prototype._shouldDecompress = (res) => {
-  return hasNonEmptyResponseContent(res) && (isGzipOrDeflateEncoding(res) || isBrotliEncoding(res));
+  return (
+    hasNonEmptyResponseContent(res) &&
+    (isGzipOrDeflateEncoding(res) || isBrotliEncoding(res))
+  );
 };
-
 
 /**
  * Overrides DNS for selected hostnames. Takes object mapping hostnames to IP addresses.
