@@ -2,7 +2,7 @@
  * Module dependencies.
  */
 
-const { format, parse } = require('node:url');
+const { format } = require('node:url');
 const Stream = require('node:stream');
 const https = require('node:https');
 const http = require('node:http');
@@ -701,12 +701,19 @@ Request.prototype.request = function () {
   if (urlString.indexOf('http') !== 0) urlString = `http://${urlString}`;
   const url = new URL(urlString);
   let { protocol } = url;
-  // Prefer legacy url.parse path so segments like ".." are not collapsed (#1816).
-  // new URL() still provides host/protocol/auth/port for the rest of the request.
-  // Unix socket URLs keep WHATWG pathname: parse() merges the socket into path.
-  const path = /^https?\+unix:/.test(protocol)
-    ? `${url.pathname}${url.search}`
-    : parse(urlString).path;
+  let path;
+  if (/^https?\+unix:/.test(protocol)) {
+    path = `${url.pathname}${url.search}`;
+  } else {
+    // Keep the caller's path as written so ".." is not collapsed (#1816).
+    const hostIndex = urlString.indexOf(url.host);
+    if (hostIndex === -1) {
+      path = `${url.pathname}${url.search}`;
+    } else {
+      path = urlString.slice(hostIndex + url.host.length).split('#')[0];
+      if (!path || path[0] === '?') path = `/${path}`;
+    }
+  }
 
   // support unix sockets
   if (/^https?\+unix:/.test(protocol) === true) {
