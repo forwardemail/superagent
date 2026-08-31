@@ -25,6 +25,14 @@ describe('[node] request', () => {
         done();
       });
     });
+
+    it('should preserve dot segments in the url path', () => {
+      const superagentRequest = request.get(`${base}/api/v2/../error`);
+      const nodeRequest = superagentRequest.request();
+
+      assert.equal('/api/v2/../error', nodeRequest.path);
+      superagentRequest.abort();
+    });
   });
 
   describe('with an object', () => {

@@ -62,6 +62,35 @@ exports.agent = require('./agent');
 
 function noop() {}
 
+function preserveDotSegments(urlString) {
+  const schemeEnd = urlString.indexOf('://');
+  const pathStart = schemeEnd === -1 ? -1 : urlString.indexOf('/', schemeEnd + 3);
+  if (pathStart === -1) return { urlString, dotSegments: [] };
+
+  const queryStart = urlString.indexOf('?', pathStart);
+  const fragmentStart = urlString.indexOf('#', pathStart);
+  const pathEnd = Math.min(
+    ...[queryStart, fragmentStart, urlString.length].filter((index) => index !== -1)
+  );
+  const dotSegments = [];
+  let marker = 'superagent-dot-segment-';
+  while (urlString.includes(marker)) marker += '-';
+
+  const pathname = urlString.slice(pathStart, pathEnd).replace(
+    /(^|\/)((?:\.|%2e){1,2})(?=\/|$)/gi,
+    (match, separator, segment) => {
+      const index = dotSegments.push(segment) - 1;
+      return `${separator}${marker}${index}`;
+    }
+  );
+
+  return {
+    urlString: `${urlString.slice(0, pathStart)}${pathname}${urlString.slice(pathEnd)}`,
+    dotSegments,
+    marker
+  };
+}
+
 /**
  * Expose `Response`.
  */
@@ -700,9 +729,13 @@ Request.prototype.request = function () {
 
   // default to http://
   if (urlString.indexOf('http') !== 0) urlString = `http://${urlString}`;
-  const url = new URL(urlString);
+  const preserved = preserveDotSegments(urlString);
+  const url = new URL(preserved.urlString);
   let { protocol } = url;
   let path = `${url.pathname}${url.search}`;
+  preserved.dotSegments.forEach((segment, index) => {
+    path = path.replace(`${preserved.marker}${index}`, segment);
+  });
 
   // support unix sockets
   if (/^https?\+unix:/.test(protocol) === true) {
