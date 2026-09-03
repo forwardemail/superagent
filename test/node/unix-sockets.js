@@ -72,6 +72,25 @@ describe('[unix-sockets] http', () => {
   });
 });
 
+describe('[unix-sockets] invalid path', () => {
+  if (process.platform === 'win32') {
+    return;
+  }
+
+  it('rejects with a clear error instead of hitting the wrong host', (done) => {
+    // the socket path here has literal slashes instead of being
+    // percent-encoded, so the URL parser can't tell it apart from a path
+    request
+      .get(`http+unix://${httpSockPath}/request/path`)
+      .end((error, res) => {
+        assert(error);
+        assert(/percent-encoded/.test(error.message));
+        assert.strictEqual(res, undefined);
+        done();
+      });
+  });
+});
+
 describe('[unix-sockets] https', () => {
   if (process.platform === 'win32') {
     return;

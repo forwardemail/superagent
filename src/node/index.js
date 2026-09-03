@@ -709,6 +709,16 @@ Request.prototype.request = function () {
     // get the protocol
     protocol = `${protocol.split('+')[0]}:`;
 
+    if (!url.hostname) {
+      // the socket path wasn't percent-encoded, so the URL parser folded it
+      // into the pathname and left us with nothing to connect to. Bail out
+      // here instead of silently falling back to a plain host request.
+      this._unixSocketError = new Error(
+        'Invalid unix socket URL. A unix socket path must be percent-encoded (replace "/" with "%2F"), e.g. http+unix://%2Ftmp%2Fmy.sock/path'
+      );
+      return;
+    }
+
     // get the socket path
     options.socketPath = url.hostname.replace(/%2F/g, '/');
     url.host = '';
@@ -984,6 +994,8 @@ Request.prototype._end = function () {
     return this.callback(
       new Error('The request has been aborted even before .end() was called')
     );
+
+  if (this._unixSocketError) return this.callback(this._unixSocketError);
 
   let data = this._data;
   const { req } = this;
