@@ -511,7 +511,7 @@ Request.prototype._redirect = function (res) {
 
   let headers = this.req.getHeaders ? this.req.getHeaders() : this.req._headers;
 
-  const changesOrigin = new URL(url).host !== new URL(this.url).host;
+  const changesOrigin = new URL(url).origin !== new URL(this.url).origin;
 
   // implementation of 302 following defacto standard
   if (res.statusCode === 301 || res.statusCode === 302) {
@@ -541,6 +541,13 @@ Request.prototype._redirect = function (res) {
 
   // 307 preserves method
   // 308 preserves method
+  if (res.statusCode === 307 || res.statusCode === 308) {
+    if (changesOrigin) {
+      delete headers.authorization;
+      delete headers.cookie;
+    }
+  }
+
   delete headers.host;
 
   delete this.req;

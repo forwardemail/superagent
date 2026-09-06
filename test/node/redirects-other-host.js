@@ -180,6 +180,22 @@ describe('request.post', () => {
         done();
       });
     });
+
+    it('should strip Authorization header on cross-origin 307 redirect', (done) => {
+      const request_ = request
+        .post(`${base}/test-307`)
+        .set('Authorization', 'Bearer secret-token')
+        .redirects(1);
+      request_.end((error, res) => {
+        const headers = request_.req.getHeaders
+          ? request_.req.getHeaders()
+          : request_.req._headers;
+        assert.strictEqual(headers.authorization, undefined);
+        res.status.should.eql(200);
+        res.text.should.eql('POST');
+        done();
+      });
+    });
   });
   describe('on 308 redirect', () => {
     it('should follow Location with a POST request', (done) => {
@@ -194,5 +210,22 @@ describe('request.post', () => {
         done();
       });
     });
+
+    it('should strip Authorization header on cross-origin 308 redirect', (done) => {
+      const request_ = request
+        .post(`${base}/test-308`)
+        .set('Authorization', 'Bearer secret-token')
+        .redirects(1);
+      request_.end((error, res) => {
+        const headers = request_.req.getHeaders
+          ? request_.req.getHeaders()
+          : request_.req._headers;
+        assert.strictEqual(headers.authorization, undefined);
+        res.status.should.eql(200);
+        res.text.should.eql('POST');
+        done();
+      });
+    });
   });
 });
+
