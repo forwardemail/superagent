@@ -181,16 +181,18 @@ describe('request.post', () => {
       });
     });
 
-    it('should strip Authorization header on cross-origin 307 redirect', (done) => {
+    it('should strip Authorization and Cookie headers on cross-origin 307 redirect', (done) => {
       const request_ = request
         .post(`${base}/test-307`)
         .set('Authorization', 'Bearer secret-token')
+        .set('Cookie', 'sid=123456')
         .redirects(1);
       request_.end((error, res) => {
         const headers = request_.req.getHeaders
           ? request_.req.getHeaders()
           : request_.req._headers;
         assert.strictEqual(headers.authorization, undefined);
+        assert.strictEqual(headers.cookie, undefined);
         res.status.should.eql(200);
         res.text.should.eql('POST');
         done();
@@ -211,16 +213,18 @@ describe('request.post', () => {
       });
     });
 
-    it('should strip Authorization header on cross-origin 308 redirect', (done) => {
+    it('should strip Authorization and Cookie headers on cross-origin 308 redirect', (done) => {
       const request_ = request
         .post(`${base}/test-308`)
         .set('Authorization', 'Bearer secret-token')
+        .set('Cookie', 'sid=123456')
         .redirects(1);
       request_.end((error, res) => {
         const headers = request_.req.getHeaders
           ? request_.req.getHeaders()
           : request_.req._headers;
         assert.strictEqual(headers.authorization, undefined);
+        assert.strictEqual(headers.cookie, undefined);
         res.status.should.eql(200);
         res.text.should.eql('POST');
         done();
@@ -228,4 +232,5 @@ describe('request.post', () => {
     });
   });
 });
+
 
