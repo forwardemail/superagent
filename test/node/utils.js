@@ -38,6 +38,24 @@ describe('utils.parseLinks(str)', () => {
       'https://api.github.com/repos/visionmedia/mocha/issues?page=5'
     );
   });
+
+  it('should find rel by name when other attributes come first', () => {
+    // RFC 8288 does not require `rel` to be the second segment of a link
+    // value, so a link that lists other attributes ahead of it should
+    // still be keyed by its actual `rel`, not by whatever happens to sit
+    // in that position.
+    const string_ =
+      '<https://example.com/page2>; type="text/html"; rel="next"';
+    const returnValue = utils.parseLinks(string_);
+    returnValue.next.should.equal('https://example.com/page2');
+    Object.keys(returnValue).should.eql(['next']);
+  });
+
+  it('should ignore a link entry that has no rel attribute', () => {
+    const string_ = '<https://example.com/page2>; type="text/html"';
+    const returnValue = utils.parseLinks(string_);
+    returnValue.should.eql({});
+  });
 });
 
 describe('utils.isGzipOrDeflateEncoding(res)', () => {

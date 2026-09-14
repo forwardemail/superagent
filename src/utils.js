@@ -43,8 +43,15 @@ exports.parseLinks = (value) => {
   for (const string_ of value.split(/ *, */)) {
     const parts = string_.split(/ *; */);
     const url = parts[0].slice(1, -1);
-    const rel = parts[1].split(/ *= */)[1].slice(1, -1);
-    object[rel] = url;
+    // The `rel` attribute isn't guaranteed to be the second segment; a link
+    // can carry other attributes (`type`, `title`, ...) before or after it,
+    // so look it up by name instead of assuming its position.
+    for (const part of parts.slice(1)) {
+      const [key, keyValue] = part.split(/ *= */);
+      if (key === 'rel' && keyValue) {
+        object[keyValue.slice(1, -1)] = url;
+      }
+    }
   }
 
   return object;
