@@ -72,6 +72,18 @@ describe('[node] request', () => {
     });
   });
 
+  describe('res.header (content-type params)', () => {
+    it('should not let a content-type param clobber an existing response property', (done) => {
+      request
+        .get(`${base}/content-type-param-name-collision`)
+        .end((error, res) => {
+          assert.equal(typeof res.header, 'object');
+          assert.equal(res.header.foo, 'a');
+          done();
+        });
+    });
+  });
+
   describe('req.unset(field)', () => {
     it('should remove the header field', (done) => {
       request

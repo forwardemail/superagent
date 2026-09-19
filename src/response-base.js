@@ -51,9 +51,20 @@ ResponseBase.prototype._setHeaderProperties = function (header) {
   this.type = utils.type(ct);
 
   // params
+  //
+  // A content-type parameter (e.g. `charset` in "text/plain; charset=utf-8")
+  // is exposed as a same-named property on the response for convenience.
+  // Guard against a parameter clobbering a property this response already
+  // has — `.header`/`.headers`, `.type`, `.status`, etc. are all set before
+  // this runs, so e.g. "text/csv; header=present" must not turn `.header`
+  // from the headers object into the string "present", which would break
+  // every subsequent header lookup on this response.
   const parameters = utils.params(ct);
   for (const key in parameters) {
-    if (Object.prototype.hasOwnProperty.call(parameters, key))
+    if (
+      Object.prototype.hasOwnProperty.call(parameters, key) &&
+      !Object.prototype.hasOwnProperty.call(this, key)
+    )
       this[key] = parameters[key];
   }
 

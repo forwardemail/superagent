@@ -170,6 +170,14 @@ app.get('/links', (request, res) => {
   res.end();
 });
 
+app.get('/content-type-param-name-collision', (request, res) => {
+  res.set('foo', 'a');
+  // A content-type param whose name collides with an existing response
+  // property (here, `header`) must not clobber that property.
+  res.set('content-type', 'text/csv; header=present');
+  res.end();
+});
+
 app.get('/xml', (request, res) => {
   res.type('xml');
   res.status(200).send('<some><xml></xml></some>');
