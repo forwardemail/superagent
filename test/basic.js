@@ -708,6 +708,46 @@ describe('request', function () {
   });
 
   describe('req.sortQuery()', () => {
+    for (const fragment of ['#section', '#section?not=query&also=fragment']) {
+      for (const existingQuery of ['', '?z=last']) {
+        for (const sort of [false, true]) {
+          it(`should append queries before ${fragment} with sorting ${sort} and existing query ${existingQuery}`, async () => {
+            const res = await request
+              .get(`${uri}/url${existingQuery}${fragment}`)
+              .query('b=two')
+              .query('a=one')
+              .sortQuery(sort);
+            const expected = sort
+              ? `a=one&b=two${existingQuery ? '&z=last' : ''}`
+              : `${existingQuery ? 'z=last&' : ''}b=two&a=one`;
+            assert.strictEqual(res.text, `/url?${expected}`);
+          });
+        }
+      }
+    }
+
+    it('should sort only the query before a fragment using a custom comparator', async () => {
+      const comparisons = [];
+      const res = await request
+        .get(`${uri}/url?long=value#section?not=query&also=fragment`)
+        .query('a=1')
+        .sortQuery((a, b) => {
+          comparisons.push(a, b);
+          return a.length - b.length;
+        });
+      assert.strictEqual(res.text, '/url?a=1&long=value');
+      assert(comparisons.every((value) => !value.includes('#')));
+    });
+
+    it('should not sort query-like text inside a fragment', async () => {
+      const req = request
+        .get(`${uri}/url#section?z=last&a=first`)
+        .sortQuery();
+      const res = await req;
+      assert.strictEqual(res.text, '/url');
+      assert(req.url.endsWith('#section?z=last&a=first'));
+    });
+
     it('nop with no querystring', (done) => {
       request
         .get(`${uri}/url`)

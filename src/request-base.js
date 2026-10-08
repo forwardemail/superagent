@@ -722,6 +722,10 @@ RequestBase.prototype.sortQuery = function (sort) {
  * @api private
  */
 RequestBase.prototype._finalizeQueryString = function () {
+  const fragmentIndex = this.url.indexOf('#');
+  const fragment = fragmentIndex === -1 ? '' : this.url.slice(fragmentIndex);
+  if (fragmentIndex !== -1) this.url = this.url.slice(0, fragmentIndex);
+
   const query = this._query.join('&');
   if (query) {
     this.url += (this.url.includes('?') ? '&' : '?') + query;
@@ -742,6 +746,8 @@ RequestBase.prototype._finalizeQueryString = function () {
       this.url = this.url.slice(0, index) + '?' + queryArray.join('&');
     }
   }
+
+  this.url += fragment;
 };
 
 // For backwards compat only
