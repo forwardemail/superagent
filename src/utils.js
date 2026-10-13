@@ -54,9 +54,11 @@ exports.parseLinks = (value) => {
     for (const part of parts.slice(1)) {
       const [key, keyValue] = part.split(/ *= */, 2);
       if (key && key.toLowerCase() === 'rel' && keyValue) {
-        const relationship = keyValue.replace(/^"|"$/g, '');
-        if (relationship && exports.isSafeKey(relationship))
-          object[relationship] = url;
+        const relationships = keyValue.replace(/^"|"$/g, '').split(/ +/);
+        for (const relationship of relationships) {
+          if (relationship && exports.isSafeKey(relationship))
+            object[relationship] = url;
+        }
         break;
       }
     }

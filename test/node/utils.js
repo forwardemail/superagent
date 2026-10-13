@@ -52,6 +52,24 @@ describe('utils.parseLinks(str)', () => {
     );
     links.should.eql({ next: 'https://example.com/page2' });
   });
+
+  it('should parse multiple space-separated relations for one link', () => {
+    const links = utils.parseLinks(
+      '<https://example.com/page2>; rel="next  last"'
+    );
+    links.should.eql({
+      next: 'https://example.com/page2',
+      last: 'https://example.com/page2'
+    });
+  });
+
+  it('should ignore unsafe keys within a list of relations', () => {
+    const links = utils.parseLinks(
+      '<https://example.com/page2>; rel="__proto__ next constructor prototype"'
+    );
+    assert.deepStrictEqual(links, { next: 'https://example.com/page2' });
+    assert.strictEqual(Object.getPrototypeOf(links), Object.prototype);
+  });
 });
 
 describe('utils.isGzipOrDeflateEncoding(res)', () => {

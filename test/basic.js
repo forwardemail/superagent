@@ -258,6 +258,16 @@ describe('request', function () {
     });
   });
 
+  describe('res.links', () => {
+    it('should expose each relation in a Link header', () =>
+      request.get(`${uri}/links-multiple-relations`).then((res) => {
+        assert.deepEqual(res.links, {
+          next: 'https://example.com/page2',
+          last: 'https://example.com/page2'
+        });
+      }));
+  });
+
   describe('set headers', () => {
     before(() => {
       Object.prototype.invalid = 'invalid';
