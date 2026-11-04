@@ -121,6 +121,16 @@ describe('[node] request', () => {
           done();
         });
     });
+
+    it('should remove implicit Accept-Encoding', (done) => {
+      request
+        .get(`${base}/echo`)
+        .unset('Accept-Encoding')
+        .end((error, res) => {
+          assert.equal(res.header['accept-encoding'], undefined);
+          done();
+        });
+    });
   });
 
   describe('case-insensitive', () => {
