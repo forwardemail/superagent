@@ -891,7 +891,7 @@ Request.prototype.cert = function (cert) {
 
 /**
  * Do not reject expired or invalid TLS certs.
- * sets `rejectUnauthorized=true`. Be warned that this allows MITM attacks.
+ * sets `rejectUnauthorized=false`. Be warned that this allows MITM attacks.
  *
  * @return {Request} for chaining
  * @api public
@@ -1057,7 +1057,10 @@ Request.prototype.request = function () {
     // set tcp no delay
     req.setNoDelay(true);
 
-    if (options.method !== 'HEAD') {
+    if (
+      options.method !== 'HEAD' &&
+      !(this._unset && this._unset.has('accept-encoding'))
+    ) {
       req.setHeader('Accept-Encoding', 'gzip, deflate');
     }
 

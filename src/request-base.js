@@ -380,13 +380,17 @@ RequestBase.prototype.set = function (field, value) {
     return this;
   }
 
-  this._header[field.toLowerCase()] = value;
+  const name = field.toLowerCase();
+  deleteHeader(this.header, name);
+  this._header[name] = value;
   this.header[field] = value;
+  if (this._unset) this._unset.delete(name);
   return this;
 };
 
 /**
- * Remove header `field`.
+ * Remove header `field`, including a default superagent would add, such as
+ * `Accept-Encoding` in Node.js.
  * Case-insensitive.
  *
  * Example:
@@ -398,10 +402,27 @@ RequestBase.prototype.set = function (field, value) {
  * @param {String} field field name
  */
 RequestBase.prototype.unset = function (field) {
-  delete this._header[field.toLowerCase()];
-  delete this.header[field];
+  const name = field.toLowerCase();
+  delete this._header[name];
+  deleteHeader(this.header, name);
+  this._unset = this._unset || new Set();
+  this._unset.add(name);
   return this;
 };
+
+/**
+ * Remove every spelling of the lowercase header `name` from `header`, which
+ * keeps the case each field was set with.
+ *
+ * @param {Object} header
+ * @param {String} name
+ * @api private
+ */
+function deleteHeader(header, name) {
+  for (const key of Object.keys(header)) {
+    if (key.toLowerCase() === name) delete header[key];
+  }
+}
 
 /**
  * Write the field `name` and `val`, or multiple fields with one object
@@ -723,25 +744,34 @@ RequestBase.prototype.sortQuery = function (sort) {
  */
 RequestBase.prototype._finalizeQueryString = function () {
   const query = this._query.join('&');
+  this._query.length = 0; // Makes the call idempotent
+  if (!query && !this._sort) return;
+
+  // The query string goes before a `#fragment`, which must not be sorted.
+  let url = String(this.url);
+  const hashIndex = url.indexOf('#');
+  const fragment = hashIndex === -1 ? '' : url.slice(hashIndex);
+  if (fragment) url = url.slice(0, hashIndex);
+
   if (query) {
-    this.url += (this.url.includes('?') ? '&' : '?') + query;
+    url += (url.includes('?') ? '&' : '?') + query;
   }
 
-  this._query.length = 0; // Makes the call idempotent
-
   if (this._sort) {
-    const index = this.url.indexOf('?');
+    const index = url.indexOf('?');
     if (index >= 0) {
-      const queryArray = this.url.slice(index + 1).split('&');
+      const queryArray = url.slice(index + 1).split('&');
       if (typeof this._sort === 'function') {
         queryArray.sort(this._sort);
       } else {
         queryArray.sort();
       }
 
-      this.url = this.url.slice(0, index) + '?' + queryArray.join('&');
+      url = url.slice(0, index) + '?' + queryArray.join('&');
     }
   }
+
+  this.url = url + fragment;
 };
 
 // For backwards compat only

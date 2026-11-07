@@ -24,6 +24,12 @@ describe('utils.params(str)', () => {
 
     utils.params('application/json').should.eql({});
   });
+
+  it('should keep an "=" inside a parameter value', () => {
+    utils
+      .params('multipart/mixed; boundary=----=_Part_0_1; charset=utf-8')
+      .should.eql({ boundary: '----=_Part_0_1', charset: 'utf-8' });
+  });
 });
 
 describe('utils.parseLinks(str)', () => {
@@ -51,6 +57,24 @@ describe('utils.parseLinks(str)', () => {
       '<https://example.com/unrelated>; type="text/html", <https://example.com/page2>; rel="next"'
     );
     links.should.eql({ next: 'https://example.com/page2' });
+  });
+
+  it('should parse several space-separated relations for one link', () => {
+    const links = utils.parseLinks(
+      '<https://example.com/page2>; rel="next  last"'
+    );
+    links.should.eql({
+      next: 'https://example.com/page2',
+      last: 'https://example.com/page2'
+    });
+  });
+
+  it('should ignore unsafe keys within a list of relations', () => {
+    const links = utils.parseLinks(
+      '<https://example.com/page2>; rel="__proto__ next constructor prototype"'
+    );
+    assert.deepStrictEqual(links, { next: 'https://example.com/page2' });
+    assert.strictEqual(Object.getPrototypeOf(links), Object.prototype);
   });
 });
 

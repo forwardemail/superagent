@@ -325,7 +325,7 @@
        .get(&#39;https://example.com/search&#39;)
        .retry(2) // 혹은
        .retry(2, callback)
-       .then(finished);
+       .then(finished)
        .catch(failed);
 </code></pre>
       <p>
@@ -445,7 +445,7 @@
         <li>
           <code>.disableTLSCerts()</code>: 만료되었거나 유효하지 않은 TLS
           인증서를 거부하지 않도록 설정합니다. 내부적으로
-          <code>rejectUnauthorized=true</code>가 설정되며, 중간자 공격(MITM)에
+          <code>rejectUnauthorized=false</code>가 설정되며, 중간자 공격(MITM)에
           노출될 수 있으므로 주의가 필요합니다.
         </li>
       </ul>
@@ -633,11 +633,13 @@ Tobi
      // 기본
      res.info = 1 == type;
      res.ok = 2 == type;
+     res.redirect = 3 == type;
      res.clientError = 4 == type;
      res.serverError = 5 == type;
      res.error = 4 == type || 5 == type;
 
      // 편의 기능
+     res.created = 201 == status;
      res.accepted = 202 == status;
      res.noContent = 204 == status || 1223 == status;
      res.badRequest = 400 == status;
@@ -645,6 +647,7 @@ Tobi
      res.notAcceptable = 406 == status;
      res.notFound = 404 == status;
      res.forbidden = 403 == status;
+     res.unprocessableEntity = 422 == status;
 </code></pre>
       <h2 id="aborting-requests">요청 중단하기</h2>
       <p>
@@ -729,7 +732,7 @@ Tobi
       <h2 id="following-redirects">다음 리다이렉션 따라가기</h2>
       <p>
         기본적으로 최대 5번까지 리다이렉션이 자동으로 따라가며, 필요에 따라
-        <code>res.redirects(n)</code> 메서드를 사용하여 이 횟수를 지정할 수
+        <code>req.redirects(n)</code> 메서드를 사용하여 이 횟수를 지정할 수
         있습니다.
       </p>
       <pre><code class="language-javascript">    const response = await request.get(&#39;/some.png&#39;).redirects(2);
@@ -780,7 +783,7 @@ Tobi
         <code>retry</code>, <code>ok</code>, <code>redirects</code>,
         <code>timeout</code>, <code>buffer</code>, <code>serialize</code>,
         <code>parse</code>, <code>ca</code>, <code>key</code>, <code>pfx</code>,
-        <code>cert</code>.
+        <code>cert</code>, <code>disableTLSCerts</code>.
       </p>
       <h2 id="piping-data">데이터 전달 방식</h2>
       <p>

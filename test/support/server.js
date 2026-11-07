@@ -174,6 +174,11 @@ app.get('/links', (request, res) => {
   res.end();
 });
 
+app.get('/links-multiple-relations', (request, res) => {
+  res.header('Link', '<https://example.com/page2>; rel="next last"');
+  res.end();
+});
+
 app.get('/content-type-parameter-collision', (request, res) => {
   res.set('foo', 'a');
   res.set(

@@ -215,7 +215,7 @@ try {
        .get(&#39;<a href="https://example.com/search&#39;">https://example.com/search&#39;</a>)
        .retry(2) // 或者：
        .retry(2, callback) // 二选一
-       .then(finished);
+       .then(finished)
        .catch(failed);</p>
 <p><code>.retry()</code> 仅用于<a href="https://baike.baidu.com/item/%E5%B9%82%E7%AD%89/8600688?fr=aladdin"><em>幂等</em></a>请求（即到达服务器的多个请求不会导致重复购买等不良副作用）。</p>
 <p>默认情况下会尝试所有请求方法（这意味着如果您不希望重试 POST 请求，则需要传递自定义的重试回调函数）。</p>
@@ -287,7 +287,7 @@ try {
 <li><code>.cert()</code>: 设置客户端证书链</li>
 <li><code>.key()</code>: 设置客户端私钥</li>
 <li><code>.pfx()</code>: 设置客户端 PFX 或 PKCS12 编码的私钥和证书链</li>
-<li><code>.disableTLSCerts()</code>: 不拒绝过期或无效的 TLS 证书。在内部设置 <code>rejectUnauthorized=true</code>。<em>请注意，此方法允许中间人攻击。</em></li>
+<li><code>.disableTLSCerts()</code>: 不拒绝过期或无效的 TLS 证书。在内部设置 <code>rejectUnauthorized=false</code>。<em>请注意，此方法允许中间人攻击。</em></li>
 </ul>
 <p>有关更多信息，请参阅 Node.js <a href="http://nodejs.cn/api/https.html#httpsrequesturl-options-callback">https.request 文档</a>。</p>
 <pre><code class="language-js">var key = fs.readFileSync(&#39;key.pem&#39;),
@@ -375,11 +375,13 @@ Tobi
  // basics
  res.info = 1 == type;
  res.ok = 2 == type;
+ res.redirect = 3 == type;
  res.clientError = 4 == type;
  res.serverError = 5 == type;
  res.error = 4 == type || 5 == type;
 
  // 语法糖
+ res.created = 201 == status;
  res.accepted = 202 == status;
  res.noContent = 204 == status || 1223 == status;
  res.badRequest = 400 == status;
@@ -387,6 +389,7 @@ Tobi
  res.notAcceptable = 406 == status;
  res.notFound = 404 == status;
  res.forbidden = 403 == status;
+ res.unprocessableEntity = 422 == status;
 </code></pre>
 <h2 id="中止请求">中止请求</h2>
 <p>要中止请求，只需调用 <code>req.abort()</code> 方法。</p>
@@ -429,7 +432,7 @@ Tobi
 <pre><code>request.auth(&#39;my_token&#39;, { type: &#39;bearer&#39; })
 </code></pre>
 <h2 id="跟随重定向">跟随重定向</h2>
-<p>默认情况下将跟随最多 5 个重定向，但是您可以使用 <code>res.redirects(n)</code> 方法指定它：</p>
+<p>默认情况下将跟随最多 5 个重定向，但是您可以使用 <code>req.redirects(n)</code> 方法指定它：</p>
 <pre><code>const response = await request.get(&#39;/some.png&#39;).redirects(2);
 </code></pre>
 <p>超出限制的重定向被视为错误。使用 <code>.ok(res =&gt; res.status &lt; 400)</code> 将它们读取为成功响应。</p>
@@ -453,7 +456,7 @@ agent
 await agent.get(&#39;/with-plugin-and-auth&#39;); // 带有插件和身份验证
 await agent.get(&#39;/also-with-plugin-and-auth&#39;); // 也带有插件和身份验证
 </code></pre>
-<p>代理可以用来设置默认值的完整方法列表是：<code>use</code>、 <code>on</code>、 <code>once</code>、 <code>set</code>、 <code>query</code>、 <code>type</code>、 <code>accept</code>、 <code>auth</code>、 <code>withCredentials</code>、 <code>sortQuery</code>、 <code>retry</code>、 <code>ok</code>、 <code>redirects</code>、 <code>timeout</code>、 <code>buffer</code>、 <code>serialize</code>、 <code>parse</code>、 <code>ca</code>、 <code>key</code>、 <code>pfx</code>、 <code>cert</code>.</p>
+<p>代理可以用来设置默认值的完整方法列表是：<code>use</code>、 <code>on</code>、 <code>once</code>、 <code>set</code>、 <code>query</code>、 <code>type</code>、 <code>accept</code>、 <code>auth</code>、 <code>withCredentials</code>、 <code>sortQuery</code>、 <code>retry</code>、 <code>ok</code>、 <code>redirects</code>、 <code>timeout</code>、 <code>buffer</code>、 <code>serialize</code>、 <code>parse</code>、 <code>ca</code>、 <code>key</code>、 <code>pfx</code>、 <code>cert</code>、 <code>disableTLSCerts</code>.</p>
 <h2 id="管道数据">管道数据</h2>
 <p>Node 客户端允许您通过管道将数据传入和传出请求。请注意，使用 <code>.pipe()</code> <strong>代替</strong> <code>.end()/.then()</code> 方法。</p>
 <p>管道文件的内容作为请求的例子：</p>

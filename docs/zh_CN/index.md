@@ -308,7 +308,7 @@ request
 .get('<https://example.com/search>')
 .retry(2) // 或者：
 .retry(2, callback) // 二选一
-.then(finished);
+.then(finished)
 .catch(failed);
 
 `.retry()` 仅用于[*幂等*](https://baike.baidu.com/item/%E5%B9%82%E7%AD%89/8600688?fr=aladdin)请求（即到达服务器的多个请求不会导致重复购买等不良副作用）。
@@ -400,7 +400,7 @@ request
 * `.cert()`: 设置客户端证书链
 * `.key()`: 设置客户端私钥
 * `.pfx()`: 设置客户端 PFX 或 PKCS12 编码的私钥和证书链
-* `.disableTLSCerts()`: 不拒绝过期或无效的 TLS 证书。在内部设置 `rejectUnauthorized=true`。*请注意，此方法允许中间人攻击。*
+* `.disableTLSCerts()`: 不拒绝过期或无效的 TLS 证书。在内部设置 `rejectUnauthorized=false`。*请注意，此方法允许中间人攻击。*
 
 有关更多信息，请参阅 Node.js [https.request 文档](http://nodejs.cn/api/https.html#httpsrequesturl-options-callback)。
 
@@ -525,11 +525,13 @@ Content-Type 响应头是特殊情况，提供 `res.type`，它没有字符集�
  // basics
  res.info = 1 == type;
  res.ok = 2 == type;
+ res.redirect = 3 == type;
  res.clientError = 4 == type;
  res.serverError = 5 == type;
  res.error = 4 == type || 5 == type;
 
  // 语法糖
+ res.created = 201 == status;
  res.accepted = 202 == status;
  res.noContent = 204 == status || 1223 == status;
  res.badRequest = 400 == status;
@@ -537,6 +539,7 @@ Content-Type 响应头是特殊情况，提供 `res.type`，它没有字符集�
  res.notAcceptable = 406 == status;
  res.notFound = 404 == status;
  res.forbidden = 403 == status;
+ res.unprocessableEntity = 422 == status;
 ```
 
 
@@ -604,7 +607,7 @@ request.auth('my_token', { type: 'bearer' })
 
 ## 跟随重定向
 
-默认情况下将跟随最多 5 个重定向，但是您可以使用 `res.redirects(n)` 方法指定它：
+默认情况下将跟随最多 5 个重定向，但是您可以使用 `req.redirects(n)` 方法指定它：
 
 ```
 const response = await request.get('/some.png').redirects(2);
@@ -643,7 +646,7 @@ await agent.get('/with-plugin-and-auth'); // 带有插件和身份验证
 await agent.get('/also-with-plugin-and-auth'); // 也带有插件和身份验证
 ```
 
-代理可以用来设置默认值的完整方法列表是：`use`、 `on`、 `once`、 `set`、 `query`、 `type`、 `accept`、 `auth`、 `withCredentials`、 `sortQuery`、 `retry`、 `ok`、 `redirects`、 `timeout`、 `buffer`、 `serialize`、 `parse`、 `ca`、 `key`、 `pfx`、 `cert`.
+代理可以用来设置默认值的完整方法列表是：`use`、 `on`、 `once`、 `set`、 `query`、 `type`、 `accept`、 `auth`、 `withCredentials`、 `sortQuery`、 `retry`、 `ok`、 `redirects`、 `timeout`、 `buffer`、 `serialize`、 `parse`、 `ca`、 `key`、 `pfx`、 `cert`、 `disableTLSCerts`.
 
 
 ## 管道数据

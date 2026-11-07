@@ -306,7 +306,7 @@ request
        .get('https://example.com/search')
        .retry(2) // 혹은
        .retry(2, callback)
-       .then(finished);
+       .then(finished)
        .catch(failed);
 ```
 
@@ -398,7 +398,7 @@ Node.js에서 SuperAgent는 HTTPS 요청을 구성할 수 있는 다양한 메�
 * `.cert()`: 클라이언트 인증서 체인을 설정합니다.
 * `.key()`: 클라이언트의 개인 키를 설정합니다.
 * `.pfx()`: PKCS12 형식의 PFX 파일을 사용하여 클라이언트의 개인 키와 인증서 체인을 설정합니다.
-* `.disableTLSCerts()`: 만료되었거나 유효하지 않은 TLS 인증서를 거부하지 않도록 설정합니다. 내부적으로 `rejectUnauthorized=true`가 설정되며, 중간자 공격(MITM)에 노출될 수 있으므로 주의가 필요합니다.
+* `.disableTLSCerts()`: 만료되었거나 유효하지 않은 TLS 인증서를 거부하지 않도록 설정합니다. 내부적으로 `rejectUnauthorized=false`가 설정되며, 중간자 공격(MITM)에 노출될 수 있으므로 주의가 필요합니다.
 
 더 자세한 내용은 Node.js [https.request 문서](https://nodejs.org/api/https.html#https_https_request_options_callback)에서 확인할 수 있습니다.
 
@@ -532,11 +532,13 @@ res.statusType = type;
 // 기본
 res.info = 1 == type;
 res.ok = 2 == type;
+res.redirect = 3 == type;
 res.clientError = 4 == type;
 res.serverError = 5 == type;
 res.error = 4 == type || 5 == type;
 
 // 편의 기능
+res.created = 201 == status;
 res.accepted = 202 == status;
 res.noContent = 204 == status || 1223 == status;
 res.badRequest = 400 == status;
@@ -544,6 +546,7 @@ res.unauthorized = 401 == status;
 res.notAcceptable = 406 == status;
 res.notFound = 404 == status;
 res.forbidden = 403 == status;
+res.unprocessableEntity = 422 == status;
 ```
 
 
@@ -615,7 +618,7 @@ request.auth('my_token', { type: 'bearer' });
 
 ## 다음 리다이렉션 따라가기
 
-기본적으로 최대 5번까지 리다이렉션이 자동으로 따라가며, 필요에 따라 `res.redirects(n)` 메서드를 사용하여 이 횟수를 지정할 수 있습니다.
+기본적으로 최대 5번까지 리다이렉션이 자동으로 따라가며, 필요에 따라 `req.redirects(n)` 메서드를 사용하여 이 횟수를 지정할 수 있습니다.
 
 ```javascript
 const response = await request.get('/some.png').redirects(2);
@@ -650,7 +653,7 @@ await agent.get('/with-plugin-and-auth');
 await agent.get('/also-with-plugin-and-auth');
 ```
 
-에이전트가 기본 옵션을 설정할 수 있도록 지원하는 메서드 목록입니다. `use`, `on`, `once`, `set`, `query`, `type`, `accept`, `auth`, `withCredentials`, `sortQuery`, `retry`, `ok`, `redirects`, `timeout`, `buffer`, `serialize`, `parse`, `ca`, `key`, `pfx`, `cert`.
+에이전트가 기본 옵션을 설정할 수 있도록 지원하는 메서드 목록입니다. `use`, `on`, `once`, `set`, `query`, `type`, `accept`, `auth`, `withCredentials`, `sortQuery`, `retry`, `ok`, `redirects`, `timeout`, `buffer`, `serialize`, `parse`, `ca`, `key`, `pfx`, `cert`, `disableTLSCerts`.
 
 
 ## 데이터 전달 방식

@@ -28,9 +28,10 @@ exports.isSafeKey = (key) => !UNSAFE_KEYS.has(key);
 exports.params = (value) => {
   const object = {};
   for (const string_ of value.split(/ *; */)) {
-    const parts = string_.split(/ *= */);
-    const key = parts.shift();
-    const value = parts.shift();
+    // Split at the first "=" only, as a value such as a multipart boundary
+    // may contain more.
+    const [key, ...rest] = string_.split(/ *= */);
+    const value = rest.join('=');
 
     if (key && value && exports.isSafeKey(key)) object[key] = value;
   }
@@ -54,9 +55,12 @@ exports.parseLinks = (value) => {
     for (const part of parts.slice(1)) {
       const [key, keyValue] = part.split(/ *= */, 2);
       if (key && key.toLowerCase() === 'rel' && keyValue) {
-        const relationship = keyValue.replace(/^"|"$/g, '');
-        if (relationship && exports.isSafeKey(relationship))
-          object[relationship] = url;
+        // A rel value may list several space-separated relation types.
+        for (const relationship of keyValue.replace(/^"|"$/g, '').split(/ +/)) {
+          if (relationship && exports.isSafeKey(relationship))
+            object[relationship] = url;
+        }
+
         break;
       }
     }

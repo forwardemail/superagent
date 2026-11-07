@@ -288,6 +288,33 @@ describe('request', function () {
         done(err);
       }
     });
+
+    it('should replace a header set with different case', async () => {
+      const req = request
+        .get(`${uri}/echo-headers`)
+        .set('X-Custom', 'one')
+        .set('x-custom', 'two');
+      assert.deepEqual(req.header, { 'x-custom': 'two' });
+      const res = await req;
+      assert.strictEqual(res.body['x-custom'], 'two');
+    });
+
+    it('should set and remove headers on a request that never called unset', () => {
+      const req = request.get(`${uri}/echo-headers`).set('X-Custom', 'one');
+      assert.deepEqual(req.header, { 'X-Custom': 'one' });
+      req.unset('x-custom');
+      assert.deepEqual(req.header, {});
+    });
+  });
+
+  describe('res.links', () => {
+    it('should expose each relation in a Link header', async () => {
+      const res = await request.get(`${uri}/links-multiple-relations`);
+      assert.deepEqual(res.links, {
+        next: 'https://example.com/page2',
+        last: 'https://example.com/page2'
+      });
+    });
   });
 
   describe('res.charset', () => {
@@ -708,6 +735,46 @@ describe('request', function () {
   });
 
   describe('req.sortQuery()', () => {
+    for (const fragment of ['#section', '#section?not=query&also=fragment']) {
+      for (const existingQuery of ['', '?z=last']) {
+        for (const sort of [false, true]) {
+          it(`should add queries before ${fragment} with sorting ${sort} and existing query "${existingQuery}"`, async () => {
+            const req = request
+              .get(`${uri}/url${existingQuery}${fragment}`)
+              .query('b=two')
+              .query('a=one')
+              .sortQuery(sort);
+            const res = await req;
+            const expected = sort
+              ? `a=one&b=two${existingQuery ? '&z=last' : ''}`
+              : `${existingQuery ? 'z=last&' : ''}b=two&a=one`;
+            assert.strictEqual(res.text, `/url?${expected}`);
+            assert(req.url.endsWith(`/url?${expected}${fragment}`));
+          });
+        }
+      }
+    }
+
+    it('should sort only the query before a fragment with a custom comparator', async () => {
+      const compared = [];
+      const res = await request
+        .get(`${uri}/url?long=value#section?not=query&also=fragment`)
+        .query('a=1')
+        .sortQuery((a, b) => {
+          compared.push(a, b);
+          return a.length - b.length;
+        });
+      assert.strictEqual(res.text, '/url?a=1&long=value');
+      assert(compared.every((value) => !value.includes('#')));
+    });
+
+    it('should not sort query-like text inside a fragment', async () => {
+      const req = request.get(`${uri}/url#section?z=last&a=first`).sortQuery();
+      const res = await req;
+      assert.strictEqual(res.text, '/url');
+      assert(req.url.endsWith('/url#section?z=last&a=first'));
+    });
+
     it('nop with no querystring', (done) => {
       request
         .get(`${uri}/url`)

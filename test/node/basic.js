@@ -121,6 +121,42 @@ describe('[node] request', () => {
           done();
         });
     });
+
+    it('should remove the default Accept-Encoding', async () => {
+      const res = await request
+        .get(`${base}/echo-headers`)
+        .unset('Accept-Encoding');
+      assert.strictEqual(res.body['accept-encoding'], undefined);
+    });
+
+    it('should keep the default Accept-Encoding removed across redirects', async () => {
+      const res = await request
+        .get(`${base}/header`)
+        .unset('accept-encoding');
+      assert.deepStrictEqual(res.redirects, [`${base}/header/2`]);
+      assert.strictEqual(res.body['accept-encoding'], undefined);
+    });
+
+    it('should send a header set again after unset', async () => {
+      const res = await request
+        .get(`${base}/echo-headers`)
+        .unset('Accept-Encoding')
+        .set('Accept-Encoding', 'identity');
+      assert.strictEqual(res.body['accept-encoding'], 'identity');
+    });
+
+    it('should remove a header set with different case', async () => {
+      const res = await request
+        .get(`${base}/echo-headers`)
+        .set('x-custom', 'value')
+        .unset('X-Custom');
+      assert.strictEqual(res.body['x-custom'], undefined);
+    });
+
+    it('should still send the default Accept-Encoding', async () => {
+      const res = await request.get(`${base}/echo-headers`);
+      assert.strictEqual(res.body['accept-encoding'], 'gzip, deflate');
+    });
   });
 
   describe('case-insensitive', () => {
