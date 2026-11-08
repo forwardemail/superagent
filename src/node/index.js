@@ -765,6 +765,7 @@ Request.prototype._redirect = function (res) {
   // 308 preserves method
   if ((res.statusCode === 307 || res.statusCode === 308) && changesOrigin) {
     delete headers.authorization;
+    delete headers['proxy-authorization'];
     delete headers.cookie;
   }
 
