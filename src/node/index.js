@@ -170,6 +170,22 @@ function withDefaultProtocol(urlString) {
 }
 
 /**
+ * Decode a percent-encoded URL username or password, as `http.request()`
+ * does. A malformed escape is left as it is.
+ *
+ * @param {String} value
+ * @return {String}
+ * @api private
+ */
+function decodeUserinfo(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+/**
  * Protocols a redirect may lead to. A request made over a Unix domain socket
  * may additionally be redirected within that same socket (see
  * `isAllowedRedirectTarget`).
@@ -1079,7 +1095,7 @@ Request.prototype.request = function () {
 
     // auth
     if (url.username || url.password) {
-      this.auth(url.username, url.password);
+      this.auth(decodeUserinfo(url.username), decodeUserinfo(url.password));
     }
 
     if (this.username && this.password) {
