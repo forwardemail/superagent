@@ -766,6 +766,7 @@ Request.prototype._redirect = function (res) {
   if ((res.statusCode === 307 || res.statusCode === 308) && changesOrigin) {
     delete headers.authorization;
     delete headers.cookie;
+    delete headers['proxy-authorization'];
   }
 
   // credentials given with `.auth(user, pass, { type: 'auto' })` are turned

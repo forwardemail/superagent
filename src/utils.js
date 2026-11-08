@@ -86,6 +86,7 @@ exports.cleanHeader = (header, changesOrigin) => {
   if (changesOrigin) {
     delete header.authorization;
     delete header.cookie;
+    delete header['proxy-authorization'];
   }
 
   return header;
