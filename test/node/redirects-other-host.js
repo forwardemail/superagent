@@ -47,6 +47,9 @@ app.all('/test-307', (request_, res) => {
 app.all('/test-308', (request_, res) => {
   res.redirect(308, `${base2}/`);
 });
+app.all('/test-301-credentials', (request_, res) => {
+  res.redirect(301, `${base2}/credentials`);
+});
 app.all('/test-307-credentials', (request_, res) => {
   res.redirect(307, `${base2}/credentials`);
 });
@@ -64,6 +67,7 @@ app2.all('/credentials', (request_, res) => {
   res.json({
     method: request_.method,
     authorization: request_.headers.authorization,
+    proxyAuthorization: request_.headers['proxy-authorization'],
     cookie: request_.headers.cookie
   });
 });
@@ -71,6 +75,7 @@ app.all('/credentials', (request_, res) => {
   res.json({
     method: request_.method,
     authorization: request_.headers.authorization,
+    proxyAuthorization: request_.headers['proxy-authorization'],
     cookie: request_.headers.cookie
   });
 });
@@ -89,6 +94,17 @@ describe('request.get', () => {
         done();
       });
     });
+
+    it('should strip credentials including proxy-authorization on a cross-origin redirect', () =>
+      request
+        .get(`${base}/test-301-credentials`)
+        .set('Authorization', 'Bearer secret-token')
+        .set('Proxy-Authorization', 'Basic cHJveHk6c2VjcmV0')
+        .set('Cookie', 'sid=123456')
+        .redirects(1)
+        .then((res) => {
+          res.body.should.eql({ method: 'GET' });
+        }));
   });
   describe('on 302 redirect', () => {
     it('should follow Location with a GET request', (done) => {
@@ -208,6 +224,7 @@ describe('request.post', () => {
       request
         .post(`${base}/test-307-credentials`)
         .set('Authorization', 'Bearer secret-token')
+        .set('Proxy-Authorization', 'Basic cHJveHk6c2VjcmV0')
         .set('Cookie', 'sid=123456')
         .redirects(1)
         .then((res) => {
@@ -218,12 +235,14 @@ describe('request.post', () => {
       request
         .post(`${base}/test-307-same-origin-credentials`)
         .set('Authorization', 'Bearer secret-token')
+        .set('Proxy-Authorization', 'Basic cHJveHk6c2VjcmV0')
         .set('Cookie', 'sid=123456')
         .redirects(1)
         .then((res) => {
           res.body.should.eql({
             method: 'POST',
             authorization: 'Bearer secret-token',
+            proxyAuthorization: 'Basic cHJveHk6c2VjcmV0',
             cookie: 'sid=123456'
           });
         }));
@@ -246,6 +265,7 @@ describe('request.post', () => {
       request
         .post(`${base}/test-308-credentials`)
         .set('Authorization', 'Bearer secret-token')
+        .set('Proxy-Authorization', 'Basic cHJveHk6c2VjcmV0')
         .set('Cookie', 'sid=123456')
         .redirects(1)
         .then((res) => {
