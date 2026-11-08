@@ -24,6 +24,24 @@ describe('Basic auth', () => {
         done();
       });
     });
+
+    it('should percent-decode the username and password', (done) => {
+      const new_url = new URL(base);
+      new_url.username = 'tobi@example.com';
+      new_url.password = 'learn boost/';
+      new_url.pathname = '/echo-header/authorization';
+
+      request.get(format(new_url)).end((error, res) => {
+        assert.ifError(error);
+        const [type, credentials] = res.text.split(' ');
+        assert.equal(type, 'Basic');
+        assert.equal(
+          Buffer.from(credentials, 'base64').toString(),
+          'tobi@example.com:learn boost/'
+        );
+        done();
+      });
+    });
   });
 
   describe('req.auth(user, pass)', () => {
