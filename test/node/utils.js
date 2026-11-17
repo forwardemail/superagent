@@ -30,6 +30,21 @@ describe('utils.params(str)', () => {
       .params('multipart/mixed; boundary=----=_Part_0_1; charset=utf-8')
       .should.eql({ boundary: '----=_Part_0_1', charset: 'utf-8' });
   });
+
+  it('should unquote quoted-string parameter values', () => {
+    utils
+      .params('text/html; charset="utf-8"')
+      .should.eql({ charset: 'utf-8' });
+    utils
+      .params('multipart/mixed; boundary="a;b"; charset="UTF-8"')
+      .should.eql({ boundary: 'a;b', charset: 'UTF-8' });
+    utils
+      .params('text/plain; title="say \\"hi\\""; charset=utf-8')
+      .should.eql({ title: 'say "hi"', charset: 'utf-8' });
+    utils
+      .params('multipart/form-data; boundary="a = b"')
+      .should.eql({ boundary: 'a = b' });
+  });
 });
 
 describe('utils.parseLinks(str)', () => {
