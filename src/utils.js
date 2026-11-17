@@ -27,17 +27,67 @@ exports.isSafeKey = (key) => !UNSAFE_KEYS.has(key);
 
 exports.params = (value) => {
   const object = {};
-  for (const string_ of value.split(/ *; */)) {
+  for (const string_ of splitParams(value)) {
     // Split at the first "=" only, as a value such as a multipart boundary
     // may contain more.
     const [key, ...rest] = string_.split(/ *= */);
-    const value = rest.join('=');
+    // A quoted-string keeps the spaces around an "=" inside it, so unquote
+    // the raw text after the first "=".
+    const quoted =
+      rest.length > 0
+        ? unquote(string_.slice(string_.indexOf('=') + 1).replace(/^ +/, ''))
+        : null;
+    const value = quoted === null ? rest.join('=') : quoted;
 
     if (key && value && exports.isSafeKey(key)) object[key] = value;
   }
 
   return object;
 };
+
+/**
+ * Split a header value at the ";" separators that are outside of a
+ * quoted-string, so `a=";"` stays one parameter (RFC 9110 Section 5.6.4).
+ */
+
+function splitParams(value) {
+  const parts = [];
+  let current = '';
+  let quoted = false;
+  for (let index = 0; index < value.length; index++) {
+    const character = value[index];
+    if (quoted && character === '\\' && index + 1 < value.length) {
+      current += character + value[++index];
+      continue;
+    }
+
+    if (character === '"') quoted = !quoted;
+    if (character === ';' && !quoted) {
+      parts.push(current);
+      current = '';
+    } else {
+      current += character;
+    }
+  }
+
+  parts.push(current);
+  // Like the former / *; */ split, only strip the spaces next to a ";".
+  return parts.map((part, index) => {
+    if (index > 0) part = part.replace(/^ +/, '');
+    if (index < parts.length - 1) part = part.replace(/ +$/, '');
+    return part;
+  });
+}
+
+/**
+ * Return the content of a quoted-string, such as `charset="utf-8"`, or
+ * null when the value is not a quoted-string.
+ */
+
+function unquote(value) {
+  const match = /^"(.*)"$/s.exec(value);
+  return match ? match[1].replace(/\\(.)/gs, '$1') : null;
+}
 
 /**
  * Parse Link header fields.
