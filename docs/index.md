@@ -946,4 +946,4 @@ We have dropped support in v8 for IE.  You must add a polyfill for WeakRef and B
 
 SuperAgent has two implementations: one for web browsers (using XHR) and one for Node.JS (using core http module). By default Browserify and WebPack will pick the browser version.
 
-If want to use WebPack to compile code for Node.JS, you *must* specify [node target](https://webpack.github.io/docs/configuration.html#target) in its configuration.
+If want to use WebPack to compile code for Node.JS, you *must* specify [node target](https://webpack.js.org/configuration/target/) in its configuration.

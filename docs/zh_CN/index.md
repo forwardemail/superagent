@@ -895,7 +895,7 @@ const res = yield req;
 
 SuperAgent 有两种实现：一种用于 Web 浏览器（使用 XHR），另一种用于 Node.JS（使用核心 http 模块）。默认情况下，Browserify 和 WebPack 将选择浏览器版本。
 
-如果要使用 WebPack 为 Node.JS 编译代码，您*必须*在其配置中指定[node target](https://webpack.github.io/docs/configuration.html#target)。
+如果要使用 WebPack 为 Node.JS 编译代码，您*必须*在其配置中指定[node target](https://webpack.js.org/configuration/target/)。
 
 ### 在 electron 中使用浏览器版本
 

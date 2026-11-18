@@ -910,4 +910,4 @@ v8 버전부터는 IE에 대한 지원이 중단되었습니다. Opera 85나 iOS
 
 SuperAgent에는 두 가지 구현 방식이 있습니다. 하나는 웹 브라우저용(XHR 사용)이고, 다른 하나는 Node.JS용(core http 모듈 사용)입니다. 기본적으로 Browserify와 WebPack은 브라우저 버전을 선택합니다.
 
-Node.JS용 코드를 컴파일하려면 WebPack 설정에서 반드시 [node target](https://webpack.github.io/docs/configuration.html#target)을 지정해야 합니다.
+Node.JS용 코드를 컴파일하려면 WebPack 설정에서 반드시 [node target](https://webpack.js.org/configuration/target/)을 지정해야 합니다.
