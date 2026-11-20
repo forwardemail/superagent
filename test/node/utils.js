@@ -185,3 +185,45 @@ describe('utils.isBrotliEncoding(res)', () => {
   });
   
 });
+
+describe('utils.cleanHeader(header, changesOrigin)', () => {
+  it('should strip entity headers always', () => {
+    const header = {
+      'content-type': 'application/json',
+      'content-length': '123',
+      'transfer-encoding': 'chunked',
+      host: 'example.com',
+      accept: 'text/html'
+    };
+    utils.cleanHeader(header, false);
+    header.should.eql({ accept: 'text/html' });
+  });
+
+  it('should strip authorization, cookie, and proxy-authorization when origin changes', () => {
+    const header = {
+      authorization: 'Bearer token',
+      cookie: 'sid=123',
+      'proxy-authorization': 'Basic secret',
+      accept: 'text/html'
+    };
+    utils.cleanHeader(header, true);
+    header.should.eql({ accept: 'text/html' });
+  });
+
+  it('should preserve authorization, cookie, and proxy-authorization when origin does not change', () => {
+    const header = {
+      authorization: 'Bearer token',
+      cookie: 'sid=123',
+      'proxy-authorization': 'Basic secret',
+      accept: 'text/html'
+    };
+    utils.cleanHeader(header, false);
+    header.should.eql({
+      authorization: 'Bearer token',
+      cookie: 'sid=123',
+      'proxy-authorization': 'Basic secret',
+      accept: 'text/html'
+    });
+  });
+});
+
