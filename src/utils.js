@@ -31,9 +31,15 @@ exports.params = (value) => {
     // Split at the first "=" only, as a value such as a multipart boundary
     // may contain more.
     const [key, ...rest] = string_.split(/ *= */);
-    const value = rest.join('=');
+    let val = rest.join('=');
 
-    if (key && value && exports.isSafeKey(key)) object[key] = value;
+    if (key && val && exports.isSafeKey(key)) {
+      if (val.startsWith('"') && val.endsWith('"') && val.length >= 2) {
+        val = val.slice(1, -1).replace(/\\(.)/g, '$1');
+      }
+
+      object[key] = val;
+    }
   }
 
   return object;

@@ -30,6 +30,11 @@ describe('utils.params(str)', () => {
       .params('multipart/mixed; boundary=----=_Part_0_1; charset=utf-8')
       .should.eql({ boundary: '----=_Part_0_1', charset: 'utf-8' });
   });
+
+  it('should strip quotes from quoted parameter values', () => {
+    const object = utils.params('text/html; charset="UTF-8"');
+    object.charset.should.equal('UTF-8');
+  });
 });
 
 describe('utils.parseLinks(str)', () => {
